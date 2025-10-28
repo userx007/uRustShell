@@ -1,0 +1,21 @@
+[package]
+name = "shell_runner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+heapless = "0.9.1"
+shell_config = { path = "../shell_config" }
+shell_core   = { path = "../shell_core" }
+shell_macros = { path = "../shell_macros" }
+usercode     = { path = "../usercode"     }
+
+[features]
+history-persistence = []
+heap-history = []
+heap-input-buffer = []
+
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }
+

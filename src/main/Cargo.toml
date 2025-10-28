@@ -1,0 +1,28 @@
+[package]
+name = "main"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+shell_runner   = { path = "../shell_runner" }
+defmt          = { version = "0.3", optional = true }
+
+
+[features]
+default = ["history-persistence", "heap-history", "heap-input-buffer"]
+#   default = ["history-persistence", "heap-history", "heap-input-buffer"]
+history-persistence = []
+heap-history = []
+heap-input-buffer = []
+defmt = ["dep:defmt"]
+
+
+# Remove bounds checks when parsing arguments (you already enforce arity)
+unchecked = []
+
+# Drop PARAM_SPECS/spec_idx to save a bit of flash
+no_diagnostics = []
+
+# Use a simpler match for very tiny function sets
+simple_lookup = []
+

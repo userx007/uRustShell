@@ -1,0 +1,20 @@
+[package]
+name = "shell_macros"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+syn = "2.0"
+quote = "1.0"
+proc-macro2 = "1.0"
+heapless = "0.9.1"
+shell_config = { path = "../shell_config" }
+
+
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }
+
+[lib]
+proc-macro = true
+
