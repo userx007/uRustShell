@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "input_parser",
+    "shortcut_dispatcher",
+    "cmd_dispatcher",
+    "application"
+]
+
+resolver = "2"
