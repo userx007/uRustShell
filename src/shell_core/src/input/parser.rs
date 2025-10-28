@@ -226,9 +226,10 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// - Calls `list_commands()` to print the command list.
     /// - Prints predefined shell shortcuts.
 
-    fn show_commands(&self) {
+    fn list_all(&self) {
         self.list_commands();
-        print!("\n⚡ Shortcuts:\n{}\n", self.shell_shortcuts);
+        print!("\n⚡ Shortcuts:\n### : list all\n##  : list cmds\n#q  : exit\n#h  : list history\n#c  : clear history\n#N  : exec from history at index N\n");
+        print!("\n⚡ User shortcuts:\n{}\n", self.shell_shortcuts);
         print!("\n📝 Arg types:\n{}\n", self.shell_datatypes);
     }
 
@@ -237,7 +238,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     ///
     /// Supports the following commands:
     /// - `"q"`: Quits or exits the current context (returns `false`, no output).
-    /// - `"#"`: Displays available commands via `show_commands()`.
+    /// - `"#"`: Displays available commands via `list_all()`.
     /// - `"h"`: Shows command history.
     /// - `"c"`: Clears command history.
     /// - Numeric input: Attempts to retrieve a history entry by index.
@@ -249,7 +250,11 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         match input {
             "q" => (false, None),
             "#" => {
-                self.show_commands();
+                self.list_commands();
+                (true, None)
+            }
+            "##" => {
+                self.list_all();
                 (true, None)
             }
             "h" => {

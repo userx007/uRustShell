@@ -33,7 +33,7 @@ impl Shell<'_> {
         let shell_datatypes = commands::get_datatypes();
         let shell_shortcuts = shortcuts::get_shortcuts();
         let parser          = InputParser::<{commands::NUM_COMMANDS},{commands::MAX_FUNCTION_NAME_LEN},INPUT_MAX_LEN,HISTORY_TOTAL_CAPACITY,HISTORY_MAX_ENTRIES>::new(shell_commands, shell_datatypes, shell_shortcuts, PROMPT);
-
+        println!("🌟 Shell started (try ###)");
         Self {
             parser,
             _terminal : RawMode::new(0),
