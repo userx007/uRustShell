@@ -1,5 +1,9 @@
 #[cfg(feature = "history-persistence")]
 extern crate std;
+#[cfg(feature = "history-persistence")]
+const HISTORY_FILENAME: &str  = ".hist";
+#[cfg(feature = "history-persistence")]
+use std::fmt::Write;
 
 use heapless::String;
 
@@ -44,16 +48,23 @@ impl<const HTC: usize, const HME: usize> Default for History<HTC, HME> {
 
 impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     /// Creates a new, empty history buffer.
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         const NONE: Option<EntryMeta> = None;
-        Self {
+        let instance = Self {
             data: [0; HTC],
             entries: [NONE; HME],
             data_head: 0,
             entry_head: 0,
             entry_size: 0,
             current_index: 0,
-        }
+        };
+        #[cfg(feature = "history-persistence")]
+        let instance = {
+            let mut inst = instance;
+            inst.load_from_file(HISTORY_FILENAME);
+            inst
+        };
+        instance
     }
 
     /// Pushes a new string into the history.
@@ -106,6 +117,8 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
             self.entry_size += 1;
         }
         self.current_index = self.entry_size - 1;
+        #[cfg(feature = "history-persistence")]
+        self.append_to_file(HISTORY_FILENAME, trimmed);
         true
     }
 
@@ -235,7 +248,6 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         for e in self.entries.iter_mut() {
             *e = None;
         }
-        println!("🧹 History cleared");
     }
 
     /// Returns the number of free bytes and free entry slots.
@@ -288,17 +300,12 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         }
     }
 
-    /// Appends all history entries to a file (if `history-persistence` feature is enabled).
     #[cfg(feature = "history-persistence")]
-    pub fn append_to_file<const IML: usize>(&self, path: &str) {
+    pub fn append_to_file(&self, path: &str, entry: &str) {
         use std::fs::OpenOptions;
         use std::io::Write;
         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
-            for i in 0..self.entry_size {
-                if let Some((_idx, entry)) = self.get_at_index::<IML>(i) {
-                    let _ = writeln!(file, "{}", entry);
-                }
-            }
+            let _ = writeln!(file, "{}", entry);
         }
     }
 }

@@ -265,6 +265,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
             }
             "c" => {
                 self.history.clear();
+                println!("🧹 History cleared");
                 (true, None)
             }
             _ => {

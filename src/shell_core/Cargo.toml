@@ -8,10 +8,10 @@ heapless = "0.9.1"
 shell_config = { path = "../shell_config" }
 
 [features]
+default = []          # no_std by default
 history-persistence = []
 heap-history = []
 heap-input-buffer = []
-serial-terminal = []
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi", "winbase"] }

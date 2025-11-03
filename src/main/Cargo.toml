@@ -4,16 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-shell_runner   = { path = "../shell_runner" }
-defmt          = { version = "0.3", optional = true }
+#shell_core = { path = "../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+shell_runner = { path = "../shell_runner" }
+defmt = { version = "0.3", optional = true }
 
 
 [features]
-#default = ["history-persistence", "heap-history", "heap-input-buffer"]
+default = []
 history-persistence = []
 heap-history = []
 heap-input-buffer = []
-serial-terminal = []
 defmt = ["dep:defmt"]
 
 
