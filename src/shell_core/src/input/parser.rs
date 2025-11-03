@@ -20,6 +20,8 @@ use crate::autocomplete::Autocomplete;
 use crate::history::History;
 use crate::input::buffer::InputBuffer;
 use crate::input::renderer::DisplayRenderer;
+use crate::input::key_reader::platform::read_key;
+use crate::input::key_reader::Key;
 
 
 /// # Type Parameters
@@ -300,89 +302,115 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     ///
     /// Returns `true` if input was successfully handled or executed, `false` if the user requested to quit.
 
-    pub fn parse_input<F>(&mut self, exec : F) -> bool
-        where
-            F: Fn(&String<IML>),
+    pub fn parse_input<F>(&mut self, exec: F) -> bool
+    where
+        F: Fn(&String<IML>),
     {
-        use std::io::Read;
-
-        let stdin = io::stdin();
-        let mut bytes = stdin.bytes();
         DisplayRenderer::render(self.prompt, "", 0);
 
-        while let Some(Ok(b)) = bytes.next() {
+        loop {
+            let key = match read_key() {
+                Ok(k) => k,
+                Err(_) => continue,
+            };
 
-            match b {
-                b'\n' => {
+            match key {
+                Key::Enter => {
                     println!();
                     break;
                 }
-                127 => {
+
+                Key::Backspace => {
                     self.handle_backspace();
                 }
-                9 => {
-                    self.handle_tab(false); // Tab
+
+                Key::Tab => {
+                    self.handle_tab(false);
                 }
-                21 => { // Ctrl+U
+
+                Key::ShiftTab => {
+                    self.handle_tab(true);
+                }
+
+                Key::CtrlU => {
                     self.buffer.delete_to_start();
                     DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
                 }
-                11 => { // Ctrl+K
+
+                Key::CtrlK => {
                     self.buffer.delete_to_end();
                     DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
                 }
-                4 => { // Ctrl+D
+
+                Key::CtrlD => {
                     self.buffer.clear();
                     DisplayRenderer::render(self.prompt, "", 0);
                 }
-                27 => {
-                    let b1 = bytes.next().unwrap_or(Ok(0)).unwrap_or(0);
-                    let b2 = bytes.next().unwrap_or(Ok(0)).unwrap_or(0);
-                    match (b1, b2) {
-                        (91, 68) => self.buffer.move_left(),  // Left arrow
-                        (91, 67) => self.buffer.move_right(), // Right arrow
-                        (91, 65) => { // Up arrow
-                            if let Some(cmd) = self.history.next_entry::<IML>() {
-                                self.buffer.overwrite(&cmd);
-                            }
-                        }
-                        (91, 66) => { // Down arrow
-                            if let Some(cmd) = self.history.prev_entry::<IML>() {
-                                self.buffer.overwrite(&cmd);
-                            }
-                        }
-                        (91, 90) => self.handle_tab(true), // Shift-Tab
 
-                        (91, 72) | (91, 49) => { // Home
-                            self.buffer.move_home();
-                            if b2 == 49 {
-                                let _tilde = bytes.next();
-                            }
-                        },
-                        (91, 70) | (91, 52) => { // End
-                            self.buffer.move_end();
-                            if b2 == 52 {
-                                let _tilde = bytes.next();
-                            }
-                        },
-                        (91, 51) => { // Delete
-                            let _tilde = bytes.next();
-                            self.buffer.delete_at_cursor();
-                        },
-
-                        _ => {}
-                    }
+                Key::ArrowLeft => {
+                    self.buffer.move_left();
                     DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
                 }
-                b => {
-                    if !Self::valid_byte(b) {
-                        continue;
-                    }
-                    self.handle_char(b as char);
+
+                Key::ArrowRight => {
+                    self.buffer.move_right();
+                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
                 }
+
+                Key::ArrowUp => {
+                    if let Some(cmd) = self.history.get_next_entry::<IML>() {
+                        self.buffer.overwrite(&cmd);
+                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    }
+                }
+
+                Key::ArrowDown => {
+                    if let Some(cmd) = self.history.get_prev_entry::<IML>() {
+                        self.buffer.overwrite(&cmd);
+                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    }
+                }
+
+                Key::Home => {
+                    self.buffer.move_home();
+                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                }
+
+                Key::End => {
+                    self.buffer.move_end();
+                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                }
+
+                Key::Delete => {
+                    self.buffer.delete_at_cursor();
+                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                }
+
+                Key::PageUp => {
+                    if let Some(cmd) = self.history.get_first_entry::<IML>() {
+                        self.buffer.overwrite(&cmd);
+                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    }
+                }
+
+                Key::PageDown => {
+                    if let Some(cmd) = self.history.get_last_entry::<IML>() {
+                        self.buffer.overwrite(&cmd);
+                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    }
+                }
+
+                Key::Char(c) => {
+                    if Self::valid_byte(c as u8) {
+                        self.handle_char(c);
+                    }
+                }
+
+                _ => {}
             }
         }
 
+        // Finalize input
         let mut retval = true;
         let final_input = self.finalize();
 
@@ -400,9 +428,9 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
 
             self.buffer.clear();
         }
+
         retval
     }
-
 
     /// Checks whether a given byte represents a valid ASCII character for input.
     ///
@@ -416,5 +444,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         let c = b as char;
         c.is_ascii() && (c.is_ascii_alphanumeric() || c == ' ' || matches!(c, '!'..='~'))
     }
-
 }
+
+

@@ -110,7 +110,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Moves to the previous entry and returns it, if any.
-    pub fn prev_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
+    pub fn get_prev_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
         }
@@ -123,12 +123,47 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Moves to the next entry and returns it, if any.
-    pub fn next_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
+    pub fn get_next_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
         }
         self.current_index = (self.current_index + 1) % self.entry_size;
         self.get::<IML>(self.current_index)
+    }
+
+
+    /// Returns the **first (oldest)** entry in history, if any.
+    pub fn get_first_entry<const IML: usize>(&self) -> Option<String<IML>> {
+        if self.entry_size == 0 {
+            return None;
+        }
+        // The oldest entry is at: (entry_head + HME - entry_size) % HME
+        let oldest_idx = (self.entry_head + HME - self.entry_size) % HME;
+        let meta = self.entries[oldest_idx]?;
+
+        let mut s = String::<IML>::new();
+        for i in 0..meta.length.min(IML) {
+            let b = self.data[(meta.offset + i) % HTC];
+            s.push(b as char).ok()?;
+        }
+        Some(s)
+    }
+
+    /// Returns the **last (most recent)** entry in history, if any.
+    pub fn get_last_entry<const IML: usize>(&self) -> Option<String<IML>> {
+        if self.entry_size == 0 {
+            return None;
+        }
+        // The newest entry is just before entry_head (circularly)
+        let newest_idx = (self.entry_head + HME - 1) % HME;
+        let meta = self.entries[newest_idx]?;
+
+        let mut s = String::<IML>::new();
+        for i in 0..meta.length.min(IML) {
+            let b = self.data[(meta.offset + i) % HTC];
+            s.push(b as char).ok()?;
+        }
+        Some(s)
     }
 
     /// Sets the current index to the given value, if valid.

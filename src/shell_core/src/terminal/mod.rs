@@ -59,11 +59,17 @@ impl RawMode {
             let handle = GetStdHandle(STD_INPUT_HANDLE);
             assert!(handle != INVALID_HANDLE_VALUE);
             let mut mode = 0;
-            GetConsoleMode(handle, &mut mode);
+
+            let success = GetConsoleMode(handle, &mut mode);
+            assert!(success != 0, "Failed to get console mode");
+
             let original_mode = mode;
             // Disable line input and echo
             mode &= !(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);
-            SetConsoleMode(handle, mode);
+
+            let success = SetConsoleMode(handle, mode);
+            assert!(success != 0, "Failed to set console mode");
+
             RawMode { original_mode }
         }
     }

@@ -13,6 +13,7 @@ defmt          = { version = "0.3", optional = true }
 history-persistence = []
 heap-history = []
 heap-input-buffer = []
+serial-terminal = []
 defmt = ["dep:defmt"]
 
 
