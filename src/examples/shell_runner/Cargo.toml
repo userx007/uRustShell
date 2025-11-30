@@ -2,12 +2,13 @@
 name = "shell_runner"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 heapless = "0.9.1"
+shell_core   = { path = "../../shell_core" }
+shell_macros = { path = "../../shell_macros" }
 shell_config = { path = "../shell_config" }
-shell_core   = { path = "../shell_core" }
-shell_macros = { path = "../shell_macros" }
 usercode     = { path = "../usercode"     }
 
 [features]
@@ -18,4 +19,3 @@ heap-input-buffer = []
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }
-

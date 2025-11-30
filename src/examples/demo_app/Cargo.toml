@@ -1,10 +1,11 @@
 [package]
-name = "main"
+name = "demo_app"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
-#shell_core = { path = "../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+shell_core = { path = "../../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
 shell_runner = { path = "../shell_runner" }
 defmt = { version = "0.3", optional = true }
 
@@ -25,4 +26,5 @@ no_diagnostics = []
 
 # Use a simpler match for very tiny function sets
 simple_lookup = []
+
 

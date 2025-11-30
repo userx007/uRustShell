@@ -1,12 +1,17 @@
 [workspace]
 resolver = "3"
 members = [
-    "shell_config",
     "shell_core",
     "shell_macros",
-    "shell_runner",
-    "usercode",
-    "main"
+    "examples/demo_app",
+    "examples/shell_config",
+    "examples/shell_runner",
+    "examples/usercode",
+]
+
+# Exclude examples from publishing to crates.io
+exclude = [
+    "examples/*"
 ]
 
 [profile.dev]
@@ -14,9 +19,8 @@ opt-level = 1
 debug = true
 
 [profile.release]
-opt-level = "z"          # Optimize for size ("s" is slightly less aggressive)
-lto = true               # Enable Link Time Optimization
+opt-level = "z"          # Optimize for size
+lto = true               # Link Time Optimization
 codegen-units = 1        # Better optimization at the cost of compile time
-strip = true             # Automatically strip symbols (requires nightly or build scripts)
+strip = true             # Strip symbols (requires nightly or build scripts)
 panic = "abort"          # Removes panic messages to reduce binary size
-

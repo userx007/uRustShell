@@ -3,12 +3,21 @@ name = "shell_macros"
 version = "0.1.0"
 edition = "2024"
 
+description = "Procedural macros for the shell framework"
+license = "MIT"
+repository = "https://github.com/userx007/uRustShell"
+homepage = "https://github.com/userx007/uRustShell"
+documentation = "https://docs.rs/shell_core"
+readme = "../../README.md"
+keywords = ["shell", "template", "command-line", "framework"]
+categories = ["command-line-utilities"]
+authors = ["userx007 <vmpxxl@gmail.com>"]
+
 [dependencies]
 syn = "2.0"
 quote = "1.0"
 proc-macro2 = "1.0"
 heapless = "0.9.1"
-shell_config = { path = "../shell_config" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }

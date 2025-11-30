@@ -56,6 +56,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "demo_app"
+version = "0.1.0"
+dependencies = [
+ "defmt 0.3.100",
+ "shell_core",
+ "shell_runner",
+]
+
+[[package]]
 name = "hash32"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,14 +88,6 @@ name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
-
-[[package]]
-name = "main"
-version = "0.1.0"
-dependencies = [
- "defmt 0.3.100",
- "shell_runner",
-]
 
 [[package]]
 name = "proc-macro-error-attr2"
@@ -137,7 +138,7 @@ name = "shell_core"
 version = "0.1.0"
 dependencies = [
  "heapless",
- "shell_config",
+ "shell_macros",
  "termios",
  "winapi",
 ]
@@ -149,7 +150,6 @@ dependencies = [
  "heapless",
  "proc-macro2",
  "quote",
- "shell_config",
  "syn",
  "winapi",
 ]
