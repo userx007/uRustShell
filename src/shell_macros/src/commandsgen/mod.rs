@@ -854,3 +854,629 @@ pub fn define_commands_impl(input: TokenStream) -> TokenStream {
 
     define_commands_impl_(macro_input.into())
 }
+
+
+// ================= TESTS ==========================
+/*
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Test handler functions
+    fn void_fn() {}
+    
+    fn single_u8(a: u8) -> u8 { a }
+    fn single_u16(a: u16) -> u16 { a }
+    fn single_u32(a: u32) -> u32 { a }
+    fn single_u64(a: u64) -> u64 { a }
+    fn single_u128(a: u128) -> u128 { a }
+    
+    fn single_i8(a: i8) -> i8 { a }
+    fn single_i16(a: i16) -> i16 { a }
+    fn single_i32(a: i32) -> i32 { a }
+    fn single_i64(a: i64) -> i64 { a }
+    fn single_i128(a: i128) -> i128 { a }
+    
+    fn single_usize(a: usize) -> usize { a }
+    fn single_isize(a: isize) -> isize { a }
+    
+    fn single_f32(a: f32) -> f32 { a }
+    fn single_f64(a: f64) -> f64 { a }
+    
+    fn single_bool(a: bool) -> bool { a }
+    fn single_char(a: char) -> char { a }
+    fn single_str(a: &str) -> usize { a.len() }
+    fn single_hexstr(a: &[u8]) -> usize { a.len() }
+    
+    fn multi_args(a: u32, b: i32, c: f64, d: &str, e: bool) -> u32 {
+        if e { a + b as u32 } else { 0 }
+    }
+    
+    fn all_unsigned(a: u8, b: u16, c: u32, d: u64) -> u64 {
+        a as u64 + b as u64 + c as u64 + d
+    }
+    
+    fn all_signed(a: i8, b: i16, c: i32, d: i64) -> i64 {
+        a as i64 + b as i64 + c as i64 + d
+    }
+    
+    fn mixed_ints(a: u32, b: i32, c: usize, d: isize) -> i64 {
+        a as i64 + b as i64 + c as i64 + d as i64
+    }
+    
+    fn str_and_bool(s: &str, b: bool) -> &str {
+        if b { s } else { "" }
+    }
+
+    // Generate test dispatcher
+    define_commands! {
+        mod test_cmds;
+        hexstr_size = 32;
+        "v: void_fn,
+         B: single_u8,
+         W: single_u16,
+         D: single_u32,
+         Q: single_u64,
+         X: single_u128,
+         b: single_i8,
+         w: single_i16,
+         d: single_i32,
+         q: single_i64,
+         x: single_i128,
+         Z: single_usize,
+         z: single_isize,
+         f: single_f32,
+         F: single_f64,
+         t: single_bool,
+         c: single_char,
+         s: single_str,
+         h: single_hexstr,
+         DdFst: multi_args,
+         BWDQ: all_unsigned,
+         bwdq: all_signed,
+         Ddzz: mixed_ints,
+         st: str_and_bool"
+    }
+
+    #[test]
+    fn test_void_function() {
+        assert!(test_cmds::dispatch("void_fn").is_ok());
+        assert!(test_cmds::dispatch("void_fn extra").is_err());
+    }
+
+    #[test]
+    fn test_u8_parsing() {
+        assert!(test_cmds::dispatch("single_u8 0").is_ok());
+        assert!(test_cmds::dispatch("single_u8 255").is_ok());
+        assert!(test_cmds::dispatch("single_u8 0xFF").is_ok());
+        assert!(test_cmds::dispatch("single_u8 0o377").is_ok());
+        assert!(test_cmds::dispatch("single_u8 0b11111111").is_ok());
+        
+        // Out of range
+        assert!(matches!(
+            test_cmds::dispatch("single_u8 256"),
+            Err(test_cmds::DispatchError::BadUnsigned)
+        ));
+        
+        // Negative
+        assert!(matches!(
+            test_cmds::dispatch("single_u8 -1"),
+            Err(test_cmds::DispatchError::BadUnsigned)
+        ));
+    }
+
+    #[test]
+    fn test_u16_parsing() {
+        assert!(test_cmds::dispatch("single_u16 0").is_ok());
+        assert!(test_cmds::dispatch("single_u16 65535").is_ok());
+        assert!(test_cmds::dispatch("single_u16 0xFFFF").is_ok());
+        assert!(test_cmds::dispatch("single_u16 0o177777").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_u16 65536"),
+            Err(test_cmds::DispatchError::BadUnsigned)
+        ));
+    }
+
+    #[test]
+    fn test_u32_parsing() {
+        assert!(test_cmds::dispatch("single_u32 0").is_ok());
+        assert!(test_cmds::dispatch("single_u32 4294967295").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0xFFFFFFFF").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0b11111111111111111111111111111111").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_u32 4294967296"),
+            Err(test_cmds::DispatchError::BadUnsigned)
+        ));
+    }
+
+    #[test]
+    fn test_u64_parsing() {
+        assert!(test_cmds::dispatch("single_u64 0").is_ok());
+        assert!(test_cmds::dispatch("single_u64 18446744073709551615").is_ok());
+        assert!(test_cmds::dispatch("single_u64 0xFFFFFFFFFFFFFFFF").is_ok());
+    }
+
+    #[test]
+    fn test_u128_parsing() {
+        assert!(test_cmds::dispatch("single_u128 0").is_ok());
+        assert!(test_cmds::dispatch("single_u128 340282366920938463463374607431768211455").is_ok());
+        assert!(test_cmds::dispatch("single_u128 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF").is_ok());
+    }
+
+    #[test]
+    fn test_i8_parsing() {
+        assert!(test_cmds::dispatch("single_i8 -128").is_ok());
+        assert!(test_cmds::dispatch("single_i8 127").is_ok());
+        assert!(test_cmds::dispatch("single_i8 0").is_ok());
+        assert!(test_cmds::dispatch("single_i8 0x7F").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_i8 128"),
+            Err(test_cmds::DispatchError::BadSigned)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("single_i8 -129"),
+            Err(test_cmds::DispatchError::BadSigned)
+        ));
+    }
+
+    #[test]
+    fn test_i16_parsing() {
+        assert!(test_cmds::dispatch("single_i16 -32768").is_ok());
+        assert!(test_cmds::dispatch("single_i16 32767").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_i16 32768"),
+            Err(test_cmds::DispatchError::BadSigned)
+        ));
+    }
+
+    #[test]
+    fn test_i32_parsing() {
+        assert!(test_cmds::dispatch("single_i32 -2147483648").is_ok());
+        assert!(test_cmds::dispatch("single_i32 2147483647").is_ok());
+        assert!(test_cmds::dispatch("single_i32 0xFFFFFFFF").is_err()); // Overflow
+    }
+
+    #[test]
+    fn test_i64_parsing() {
+        assert!(test_cmds::dispatch("single_i64 -9223372036854775808").is_ok());
+        assert!(test_cmds::dispatch("single_i64 9223372036854775807").is_ok());
+    }
+
+    #[test]
+    fn test_i128_parsing() {
+        assert!(test_cmds::dispatch("single_i128 0").is_ok());
+        assert!(test_cmds::dispatch("single_i128 -170141183460469231731687303715884105728").is_ok());
+        assert!(test_cmds::dispatch("single_i128 170141183460469231731687303715884105727").is_ok());
+    }
+
+    #[test]
+    fn test_usize_parsing() {
+        assert!(test_cmds::dispatch("single_usize 0").is_ok());
+        assert!(test_cmds::dispatch("single_usize 1000").is_ok());
+        assert!(test_cmds::dispatch("single_usize 0x100").is_ok());
+    }
+
+    #[test]
+    fn test_isize_parsing() {
+        assert!(test_cmds::dispatch("single_isize -1000").is_ok());
+        assert!(test_cmds::dispatch("single_isize 1000").is_ok());
+        assert!(test_cmds::dispatch("single_isize 0").is_ok());
+    }
+
+    #[test]
+    fn test_f32_parsing() {
+        assert!(test_cmds::dispatch("single_f32 0.0").is_ok());
+        assert!(test_cmds::dispatch("single_f32 3.14").is_ok());
+        assert!(test_cmds::dispatch("single_f32 -2.5").is_ok());
+        assert!(test_cmds::dispatch("single_f32 1e10").is_ok());
+        assert!(test_cmds::dispatch("single_f32 -1.5e-5").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_f32 notanumber"),
+            Err(test_cmds::DispatchError::BadFloat)
+        ));
+    }
+
+    #[test]
+    fn test_f64_parsing() {
+        assert!(test_cmds::dispatch("single_f64 0.0").is_ok());
+        assert!(test_cmds::dispatch("single_f64 3.141592653589793").is_ok());
+        assert!(test_cmds::dispatch("single_f64 -2.5").is_ok());
+        assert!(test_cmds::dispatch("single_f64 1e100").is_ok());
+        
+        assert!(matches!(
+            test_cmds::dispatch("single_f64 invalid"),
+            Err(test_cmds::DispatchError::BadFloat)
+        ));
+    }
+
+    #[test]
+    fn test_bool_parsing() {
+        // True values
+        assert!(test_cmds::dispatch("single_bool true").is_ok());
+        assert!(test_cmds::dispatch("single_bool True").is_ok());
+        assert!(test_cmds::dispatch("single_bool TRUE").is_ok());
+        assert!(test_cmds::dispatch("single_bool 1").is_ok());
+        
+        // False values
+        assert!(test_cmds::dispatch("single_bool false").is_ok());
+        assert!(test_cmds::dispatch("single_bool False").is_ok());
+        assert!(test_cmds::dispatch("single_bool FALSE").is_ok());
+        assert!(test_cmds::dispatch("single_bool 0").is_ok());
+        
+        // Invalid
+        assert!(matches!(
+            test_cmds::dispatch("single_bool yes"),
+            Err(test_cmds::DispatchError::BadBool)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("single_bool 2"),
+            Err(test_cmds::DispatchError::BadBool)
+        ));
+    }
+
+    #[test]
+    fn test_char_parsing() {
+        assert!(test_cmds::dispatch("single_char a").is_ok());
+        assert!(test_cmds::dispatch("single_char Z").is_ok());
+        assert!(test_cmds::dispatch("single_char 5").is_ok());
+        assert!(test_cmds::dispatch("single_char @").is_ok());
+        
+        // Multi-character strings should fail
+        assert!(matches!(
+            test_cmds::dispatch("single_char ab"),
+            Err(test_cmds::DispatchError::BadChar)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("single_char \"\""),
+            Err(test_cmds::DispatchError::BadChar)
+        ));
+    }
+
+    #[test]
+    fn test_str_parsing() {
+        assert!(test_cmds::dispatch("single_str hello").is_ok());
+        assert!(test_cmds::dispatch("single_str \"hello world\"").is_ok());
+        assert!(test_cmds::dispatch("single_str \"\"").is_ok());
+        assert!(test_cmds::dispatch("single_str \"with spaces and symbols!@#\"").is_ok());
+    }
+
+    #[test]
+    fn test_hexstr_parsing() {
+        assert!(test_cmds::dispatch("single_hexstr AABBCCDD").is_ok());
+        assert!(test_cmds::dispatch("single_hexstr aabbccdd").is_ok());
+        assert!(test_cmds::dispatch("single_hexstr 00").is_ok());
+        assert!(test_cmds::dispatch("single_hexstr AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899").is_ok());
+        
+        // Odd length
+        assert!(matches!(
+            test_cmds::dispatch("single_hexstr AAB"),
+            Err(test_cmds::DispatchError::BadHexStr)
+        ));
+        
+        // Invalid hex characters
+        assert!(matches!(
+            test_cmds::dispatch("single_hexstr GGHHII"),
+            Err(test_cmds::DispatchError::BadHexStr)
+        ));
+        
+        // Empty
+        assert!(matches!(
+            test_cmds::dispatch("single_hexstr \"\""),
+            Err(test_cmds::DispatchError::BadHexStr)
+        ));
+    }
+
+    #[test]
+    fn test_multi_args() {
+        assert!(test_cmds::dispatch("multi_args 100 -50 3.14 \"test string\" true").is_ok());
+        assert!(test_cmds::dispatch("multi_args 0 0 0.0 empty false").is_ok());
+        assert!(test_cmds::dispatch("multi_args 0xFF -0x10 1e5 \"quoted\" 1").is_ok());
+    }
+
+    #[test]
+    fn test_all_unsigned() {
+        assert!(test_cmds::dispatch("all_unsigned 1 2 3 4").is_ok());
+        assert!(test_cmds::dispatch("all_unsigned 0xFF 0xFFFF 0xFFFFFFFF 0xFFFFFFFFFFFFFFFF").is_ok());
+    }
+
+    #[test]
+    fn test_all_signed() {
+        assert!(test_cmds::dispatch("all_signed -1 -2 -3 -4").is_ok());
+        assert!(test_cmds::dispatch("all_signed 127 32767 2147483647 9223372036854775807").is_ok());
+    }
+
+    #[test]
+    fn test_mixed_ints() {
+        assert!(test_cmds::dispatch("mixed_ints 100 -100 200 -200").is_ok());
+    }
+
+    #[test]
+    fn test_str_and_bool() {
+        assert!(test_cmds::dispatch("str_and_bool hello true").is_ok());
+        assert!(test_cmds::dispatch("str_and_bool \"hello world\" false").is_ok());
+    }
+
+    #[test]
+    fn test_empty_input() {
+        assert!(matches!(
+            test_cmds::dispatch(""),
+            Err(test_cmds::DispatchError::Empty)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("   "),
+            Err(test_cmds::DispatchError::Empty)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("\t\t"),
+            Err(test_cmds::DispatchError::Empty)
+        ));
+    }
+
+    #[test]
+    fn test_unknown_function() {
+        assert!(matches!(
+            test_cmds::dispatch("nonexistent 123"),
+            Err(test_cmds::DispatchError::UnknownFunction)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("not_a_command"),
+            Err(test_cmds::DispatchError::UnknownFunction)
+        ));
+    }
+
+    #[test]
+    fn test_wrong_arity() {
+        // Too few arguments
+        assert!(matches!(
+            test_cmds::dispatch("single_u32"),
+            Err(test_cmds::DispatchError::WrongArity { expected: 1 })
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("multi_args 1 2 3"),
+            Err(test_cmds::DispatchError::WrongArity { expected: 5 })
+        ));
+        
+        // Too many arguments
+        assert!(matches!(
+            test_cmds::dispatch("single_u32 1 2"),
+            Err(test_cmds::DispatchError::WrongArity { expected: 1 })
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("void_fn extra_arg"),
+            Err(test_cmds::DispatchError::WrongArity { expected: 0 })
+        ));
+    }
+
+    #[test]
+    fn test_tokenization() {
+        let mut buf = [""; 10];
+        
+        // Basic tokenization
+        let n = test_cmds::tokenize("cmd arg1 arg2", &mut buf).unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(buf[0], "cmd");
+        assert_eq!(buf[1], "arg1");
+        assert_eq!(buf[2], "arg2");
+        
+        // Quoted strings
+        let n = test_cmds::tokenize("cmd \"quoted string\" arg", &mut buf).unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(buf[0], "cmd");
+        assert_eq!(buf[1], "quoted string");
+        assert_eq!(buf[2], "arg");
+        
+        // Multiple spaces
+        let n = test_cmds::tokenize("cmd    arg1     arg2", &mut buf).unwrap();
+        assert_eq!(n, 3);
+        
+        // Tabs
+        let n = test_cmds::tokenize("cmd\targ1\targ2", &mut buf).unwrap();
+        assert_eq!(n, 3);
+        
+        // Empty quotes
+        let n = test_cmds::tokenize("cmd \"\" arg", &mut buf).unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(buf[1], "");
+    }
+
+    #[test]
+    fn test_tokenization_edge_cases() {
+        let mut buf = [""; 10];
+        
+        // Leading/trailing spaces
+        let n = test_cmds::tokenize("  cmd arg  ", &mut buf).unwrap();
+        assert_eq!(n, 2);
+        
+        // Only quotes
+        let n = test_cmds::tokenize("\"entire command line\"", &mut buf).unwrap();
+        assert_eq!(n, 1);
+        assert_eq!(buf[0], "entire command line");
+        
+        // Adjacent quotes
+        let n = test_cmds::tokenize("\"first\"\"second\"", &mut buf).unwrap();
+        assert_eq!(n, 2);
+        assert_eq!(buf[0], "first");
+        assert_eq!(buf[1], "second");
+    }
+
+    #[test]
+    fn test_dispatch_with_buf() {
+        let mut buf = [""; 10];
+        
+        assert!(test_cmds::dispatch_with_buf("single_u32 42", &mut buf).is_ok());
+        assert!(test_cmds::dispatch_with_buf("multi_args 1 2 3.0 test true", &mut buf).is_ok());
+        
+        // Buffer too small (should still work as long as it fits)
+        let mut small_buf = [""; 3];
+        assert!(test_cmds::dispatch_with_buf("single_u32 42", &mut small_buf).is_ok());
+    }
+
+    #[test]
+    fn test_introspection_functions() {
+        // Test get_commands
+        let commands = test_cmds::get_commands();
+        assert!(!commands.is_empty());
+        assert!(commands.iter().any(|(name, _)| *name == "single_u32"));
+        assert!(commands.iter().any(|(name, _)| *name == "multi_args"));
+        
+        // Test get_function_names
+        let names = test_cmds::get_function_names();
+        assert!(!names.is_empty());
+        assert!(names.contains(&"single_u32"));
+        assert!(names.contains(&"void_fn"));
+        
+        // Test get_datatypes
+        let datatypes = test_cmds::get_datatypes();
+        assert!(datatypes.contains("u8"));
+        assert!(datatypes.contains("i32"));
+        assert!(datatypes.contains("bool"));
+    }
+
+    #[test]
+    fn test_constants() {
+        // Verify constants are reasonable
+        assert!(test_cmds::MAX_ARITY > 0);
+        assert!(test_cmds::NUM_COMMANDS > 0);
+        assert!(test_cmds::MAX_FUNCTION_NAME_LEN > 0);
+        assert_eq!(test_cmds::MAX_HEXSTR_LEN, 32);
+        
+        // Verify at least some type maxes are non-zero
+        assert!(test_cmds::MAX_U32 > 0);
+        assert!(test_cmds::MAX_STR > 0);
+        assert!(test_cmds::MAX_BOOL > 0);
+    }
+
+    #[test]
+    fn test_hex_formats() {
+        // Test different hex formats
+        assert!(test_cmds::dispatch("single_u32 0x100").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0X100").is_ok()); // Uppercase X
+        assert!(test_cmds::dispatch("single_u32 0xABCDEF").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0xabcdef").is_ok());
+    }
+
+    #[test]
+    fn test_octal_formats() {
+        assert!(test_cmds::dispatch("single_u32 0o777").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0O777").is_ok()); // Uppercase O
+        assert!(test_cmds::dispatch("single_u32 0o100").is_ok());
+    }
+
+    #[test]
+    fn test_binary_formats() {
+        assert!(test_cmds::dispatch("single_u32 0b1010").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0B1010").is_ok()); // Uppercase B
+        assert!(test_cmds::dispatch("single_u32 0b11111111").is_ok());
+    }
+
+    #[test]
+    fn test_whitespace_handling() {
+        // Various whitespace combinations
+        assert!(test_cmds::dispatch("single_u32  42").is_ok());
+        assert!(test_cmds::dispatch("single_u32\t42").is_ok());
+        assert!(test_cmds::dispatch("  single_u32  42  ").is_ok());
+        assert!(test_cmds::dispatch("\tsingle_u32\t42\t").is_ok());
+    }
+
+    #[test]
+    fn test_quoted_strings_with_special_chars() {
+        assert!(test_cmds::dispatch("single_str \"hello@world.com\"").is_ok());
+        assert!(test_cmds::dispatch("single_str \"path/to/file\"").is_ok());
+        assert!(test_cmds::dispatch("single_str \"key=value\"").is_ok());
+        assert!(test_cmds::dispatch("single_str \"123-456-7890\"").is_ok());
+    }
+
+    #[test]
+    fn test_case_sensitivity() {
+        // Function names are case-sensitive
+        assert!(test_cmds::dispatch("single_u32 42").is_ok());
+        assert!(matches!(
+            test_cmds::dispatch("Single_u32 42"),
+            Err(test_cmds::DispatchError::UnknownFunction)
+        ));
+        assert!(matches!(
+            test_cmds::dispatch("SINGLE_U32 42"),
+            Err(test_cmds::DispatchError::UnknownFunction)
+        ));
+    }
+
+    #[test]
+    fn test_boundary_values() {
+        // Test boundary values for various types
+        assert!(test_cmds::dispatch("single_u8 0").is_ok());
+        assert!(test_cmds::dispatch("single_u8 255").is_ok());
+        
+        assert!(test_cmds::dispatch("single_i8 -128").is_ok());
+        assert!(test_cmds::dispatch("single_i8 127").is_ok());
+        
+        assert!(test_cmds::dispatch("single_u16 0").is_ok());
+        assert!(test_cmds::dispatch("single_u16 65535").is_ok());
+    }
+
+    #[test]
+    fn test_scientific_notation_floats() {
+        assert!(test_cmds::dispatch("single_f32 1e10").is_ok());
+        assert!(test_cmds::dispatch("single_f32 1.5e-10").is_ok());
+        assert!(test_cmds::dispatch("single_f64 1e100").is_ok());
+        assert!(test_cmds::dispatch("single_f64 -2.5e-50").is_ok());
+    }
+
+    #[test]
+    fn test_special_float_values() {
+        // Note: parsing "inf" and "nan" depends on parse implementation
+        // These may or may not work depending on the underlying parser
+        // Test what actually works
+        assert!(test_cmds::dispatch("single_f32 0.0").is_ok());
+        assert!(test_cmds::dispatch("single_f64 -0.0").is_ok());
+    }
+
+    #[test]
+    fn test_error_display() {
+        // Verify error types can be matched and compared
+        let err1 = test_cmds::DispatchError::Empty;
+        let err2 = test_cmds::DispatchError::Empty;
+        assert_eq!(err1, err2);
+        
+        let err3 = test_cmds::DispatchError::WrongArity { expected: 5 };
+        let err4 = test_cmds::DispatchError::WrongArity { expected: 5 };
+        assert_eq!(err3, err4);
+    }
+
+    #[test] 
+    fn test_mixed_quoted_unquoted() {
+        assert!(test_cmds::dispatch("str_and_bool \"hello world\" true").is_ok());
+        assert!(test_cmds::dispatch("str_and_bool unquoted false").is_ok());
+        assert!(test_cmds::dispatch("multi_args 42 -10 3.14 \"quoted\" 1").is_ok());
+        assert!(test_cmds::dispatch("multi_args 42 -10 3.14 unquoted 0").is_ok());
+    }
+
+    #[test]
+    fn test_zero_values() {
+        assert!(test_cmds::dispatch("single_u32 0").is_ok());
+        assert!(test_cmds::dispatch("single_i32 0").is_ok());
+        assert!(test_cmds::dispatch("single_f64 0.0").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0x0").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0o0").is_ok());
+        assert!(test_cmds::dispatch("single_u32 0b0").is_ok());
+    }
+
+    #[test]
+    fn test_large_hex_strings() {
+        // Test maximum size
+        let max_hex = "AA".repeat(32);
+        assert!(test_cmds::dispatch(&format!("single_hexstr {}", max_hex)).is_ok());
+        
+        // Test exceeding maximum (64 hex chars = 32 bytes, should be at limit)
+        let too_large = "AA".repeat(33); // 66 hex chars = 33 bytes
+        assert!(matches!(
+            test_cmds::dispatch(&format!("single_hexstr {}", too_large)),
+            Err(test_cmds::DispatchError::BadHexStr)
+        ));
+    }
+}
+*/

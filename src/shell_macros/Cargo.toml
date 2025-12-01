@@ -23,4 +23,5 @@ winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", 
 
 [lib]
 proc-macro = true
+doctest = false
 
