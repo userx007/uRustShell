@@ -8,7 +8,6 @@ license = "MIT"
 repository = "https://github.com/userx007/uRustShell"
 homepage = "https://github.com/userx007/uRustShell"
 documentation = "https://docs.rs/shell_core"
-readme = "../../README.md"
 keywords = ["shell", "template", "command-line", "framework"]
 categories = ["command-line-utilities"]
 authors = ["userx007 <vmpxxl@gmail.com>"]
