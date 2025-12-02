@@ -4,16 +4,16 @@ mod commandsgen;
 mod shortcutsgen;
 
 use proc_macro::TokenStream;
-use commandsgen::define_commands_impl;
-use shortcutsgen::define_shortcuts_impl;
+use commandsgen::generate_commands_dispatcher_from_file;
+use shortcutsgen::generate_shortcuts_dispatcher_from_file;
 
 #[proc_macro]
-pub fn define_commands(input: TokenStream) -> TokenStream {
-    define_commands_impl(input)
+pub fn generate_commands_dispatcher(input: TokenStream) -> TokenStream {
+    generate_commands_dispatcher_from_file(input)
 }
 
 #[proc_macro]
-pub fn define_shortcuts(input: TokenStream) -> TokenStream {
-    define_shortcuts_impl(input)
+pub fn generate_shortcuts_dispatcher(input: TokenStream) -> TokenStream {
+    generate_shortcuts_dispatcher_from_file(input)
 }
 

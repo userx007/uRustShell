@@ -3,19 +3,19 @@ use heapless::String;
 use shell_config::{PROMPT, INPUT_MAX_LEN, HISTORY_TOTAL_CAPACITY, HISTORY_MAX_ENTRIES, MAX_HEXSTR_LEN};
 use shell_core::input::parser::InputParser;
 use shell_core::terminal::RawMode;
-use shell_macros::{define_shortcuts, define_commands};
+use shell_macros::{generate_shortcuts_dispatcher, generate_commands_dispatcher};
 
 use usercode::commands as uc;
 use usercode::shortcuts as us;
 
 
-define_commands!{
+generate_commands_dispatcher!{
     mod commands;
     hexstr_size = crate::MAX_HEXSTR_LEN;
     path = "../usercode/src/commands.cfg"
 }
 
-define_shortcuts!{
+generate_shortcuts_dispatcher!{
     mod shortcuts;
     shortcut_size = crate::INPUT_MAX_LEN;
     path = "../usercode/src/shortcuts.cfg"

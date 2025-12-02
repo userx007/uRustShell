@@ -70,7 +70,7 @@ impl Parse for ShortcutMacroInput {
 }
 
 
-pub fn define_shortcuts_impl(input: TokenStream) -> TokenStream {
+pub fn generate_shortcuts_dispatcher_from_file(input: TokenStream) -> TokenStream {
     let ShortcutMacroInput {
         mod_name,
         shortcut_size,
