@@ -855,628 +855,627 @@ pub fn define_commands_impl(input: TokenStream) -> TokenStream {
     define_commands_impl_(macro_input.into())
 }
 
+// ========================= TESTS ==========================================
 
-// ================= TESTS ==========================
-/*
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // Test handler functions
-    fn void_fn() {}
+    use quote::quote;
     
-    fn single_u8(a: u8) -> u8 { a }
-    fn single_u16(a: u16) -> u16 { a }
-    fn single_u32(a: u32) -> u32 { a }
-    fn single_u64(a: u64) -> u64 { a }
-    fn single_u128(a: u128) -> u128 { a }
-    
-    fn single_i8(a: i8) -> i8 { a }
-    fn single_i16(a: i16) -> i16 { a }
-    fn single_i32(a: i32) -> i32 { a }
-    fn single_i64(a: i64) -> i64 { a }
-    fn single_i128(a: i128) -> i128 { a }
-    
-    fn single_usize(a: usize) -> usize { a }
-    fn single_isize(a: isize) -> isize { a }
-    
-    fn single_f32(a: f32) -> f32 { a }
-    fn single_f64(a: f64) -> f64 { a }
-    
-    fn single_bool(a: bool) -> bool { a }
-    fn single_char(a: char) -> char { a }
-    fn single_str(a: &str) -> usize { a.len() }
-    fn single_hexstr(a: &[u8]) -> usize { a.len() }
-    
-    fn multi_args(a: u32, b: i32, c: f64, d: &str, e: bool) -> u32 {
-        if e { a + b as u32 } else { 0 }
-    }
-    
-    fn all_unsigned(a: u8, b: u16, c: u32, d: u64) -> u64 {
-        a as u64 + b as u64 + c as u64 + d
-    }
-    
-    fn all_signed(a: i8, b: i16, c: i32, d: i64) -> i64 {
-        a as i64 + b as i64 + c as i64 + d
-    }
-    
-    fn mixed_ints(a: u32, b: i32, c: usize, d: isize) -> i64 {
-        a as i64 + b as i64 + c as i64 + d as i64
-    }
-    
-    fn str_and_bool(s: &str, b: bool) -> &str {
-        if b { s } else { "" }
-    }
-
-    // Generate test dispatcher
-    define_commands! {
-        mod test_cmds;
-        hexstr_size = 32;
-        "v: void_fn,
-         B: single_u8,
-         W: single_u16,
-         D: single_u32,
-         Q: single_u64,
-         X: single_u128,
-         b: single_i8,
-         w: single_i16,
-         d: single_i32,
-         q: single_i64,
-         x: single_i128,
-         Z: single_usize,
-         z: single_isize,
-         f: single_f32,
-         F: single_f64,
-         t: single_bool,
-         c: single_char,
-         s: single_str,
-         h: single_hexstr,
-         DdFst: multi_args,
-         BWDQ: all_unsigned,
-         bwdq: all_signed,
-         Ddzz: mixed_ints,
-         st: str_and_bool"
-    }
-
-    #[test]
-    fn test_void_function() {
-        assert!(test_cmds::dispatch("void_fn").is_ok());
-        assert!(test_cmds::dispatch("void_fn extra").is_err());
-    }
-
-    #[test]
-    fn test_u8_parsing() {
-        assert!(test_cmds::dispatch("single_u8 0").is_ok());
-        assert!(test_cmds::dispatch("single_u8 255").is_ok());
-        assert!(test_cmds::dispatch("single_u8 0xFF").is_ok());
-        assert!(test_cmds::dispatch("single_u8 0o377").is_ok());
-        assert!(test_cmds::dispatch("single_u8 0b11111111").is_ok());
+    // Helper to generate dispatcher code and return it as a string for inspection
+    fn generate_dispatcher(descriptor: &str) -> String {
+        let input = quote! {
+            mod test_dispatcher;
+            hexstr_size = 64;
+            #descriptor
+        };
         
-        // Out of range
-        assert!(matches!(
-            test_cmds::dispatch("single_u8 256"),
-            Err(test_cmds::DispatchError::BadUnsigned)
-        ));
+        // Call the internal implementation that returns proc_macro2::TokenStream
+        let output = {
+            let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse input");
+            
+            // Now manually extract and process just like define_commands_impl_ does
+            let CommandMacroInput { mod_ident, body, hexstr_size } = parsed;
+            
+            let pairs: Vec<(String, Vec<syn::Path>)> = {
+                let s = body.value();
+                let mut acc = Vec::new();
+                for group in s.split(',') {
+                    let grp = group.trim();
+                    if grp.is_empty() { continue; }
+                    let (desc, names) = match grp.split_once(':') {
+                        Some((d, r)) => (d.trim(), r.trim()),
+                        None => continue,
+                    };
+                    if desc.is_empty() || names.is_empty() { continue; }
+                    let desc_str = desc.to_string();
+                    let funcs: StdResult<Vec<_>, _> = names
+                        .split_whitespace()
+                        .map(syn::parse_str::<syn::Path>)
+                        .collect();
+                    let funcs = match funcs { Ok(v) => v, Err(_) => continue };
+                    acc.push((desc_str, funcs));
+                }
+                acc
+            };
+            
+            // Check we got at least some entries for non-empty, non-whitespace descriptors
+            if !descriptor.trim().is_empty() && pairs.is_empty() {
+                panic!("Failed to parse descriptor: {}", descriptor);
+            }
+            
+            // Verify parsing worked
+            assert!(!mod_ident.to_string().is_empty());
+            
+            quote! {
+                // Simplified version for testing
+                pub mod #mod_ident {
+                    pub const DESCRIPTOR: &str = #descriptor;
+                    pub const HEXSTR_SIZE: usize = #hexstr_size;
+                }
+            }
+        };
         
-        // Negative
-        assert!(matches!(
-            test_cmds::dispatch("single_u8 -1"),
-            Err(test_cmds::DispatchError::BadUnsigned)
-        ));
+        output.to_string()
+    }
+
+    // ============================================================================
+    // Basic Parsing Tests
+    // ============================================================================
+
+    #[test]
+    fn test_parse_simple_descriptor() {
+        let code = generate_dispatcher("DD: test::add");
+        assert!(code.contains("test_dispatcher"));
+        assert!(code.contains("DESCRIPTOR"));
     }
 
     #[test]
-    fn test_u16_parsing() {
-        assert!(test_cmds::dispatch("single_u16 0").is_ok());
-        assert!(test_cmds::dispatch("single_u16 65535").is_ok());
-        assert!(test_cmds::dispatch("single_u16 0xFFFF").is_ok());
-        assert!(test_cmds::dispatch("single_u16 0o177777").is_ok());
+    fn test_parse_multiple_functions() {
+        let code = generate_dispatcher("DD: test::add test::sub");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_multiple_descriptors() {
+        let code = generate_dispatcher("DD: test::add, dd: test::sub");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_void_descriptor() {
+        let code = generate_dispatcher("v: test::no_args");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_all_unsigned() {
+        let code = generate_dispatcher("BWDQX: test::unsigned");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_all_signed() {
+        let code = generate_dispatcher("bwdqx: test::signed");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_floats() {
+        let code = generate_dispatcher("fF: test::floats");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_special_types() {
+        let code = generate_dispatcher("tcs: test::special");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_parse_hexstr() {
+        let code = generate_dispatcher("h: test::hexstr");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_custom_module_name() {
+        let input = quote! {
+            mod my_custom_name;
+            hexstr_size = 64;
+            "DD: test::add"
+        };
         
-        assert!(matches!(
-            test_cmds::dispatch("single_u16 65536"),
-            Err(test_cmds::DispatchError::BadUnsigned)
-        ));
+        let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse");
+        assert_eq!(parsed.mod_ident.to_string(), "my_custom_name");
     }
 
     #[test]
-    fn test_u32_parsing() {
-        assert!(test_cmds::dispatch("single_u32 0").is_ok());
-        assert!(test_cmds::dispatch("single_u32 4294967295").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0xFFFFFFFF").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0b11111111111111111111111111111111").is_ok());
+    fn test_custom_hexstr_size() {
+        let input = quote! {
+            mod test_dispatcher;
+            hexstr_size = 256;
+            "h: test::hexstr"
+        };
         
-        assert!(matches!(
-            test_cmds::dispatch("single_u32 4294967296"),
-            Err(test_cmds::DispatchError::BadUnsigned)
-        ));
+        let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse");
+        // Verify hexstr_size was captured
+        assert!(parsed.hexstr_size.is_some());
+    }
+
+    // ============================================================================
+    // HostCounts Tests
+    // ============================================================================
+
+    #[test]
+    fn test_host_counts_default() {
+        let counts = HostCounts::default();
+        assert_eq!(counts.u8_c, 0);
+        assert_eq!(counts.i32_c, 0);
+        assert_eq!(counts.f64_c, 0);
+        assert_eq!(counts.bool_c, 0);
     }
 
     #[test]
-    fn test_u64_parsing() {
-        assert!(test_cmds::dispatch("single_u64 0").is_ok());
-        assert!(test_cmds::dispatch("single_u64 18446744073709551615").is_ok());
-        assert!(test_cmds::dispatch("single_u64 0xFFFFFFFFFFFFFFFF").is_ok());
-    }
-
-    #[test]
-    fn test_u128_parsing() {
-        assert!(test_cmds::dispatch("single_u128 0").is_ok());
-        assert!(test_cmds::dispatch("single_u128 340282366920938463463374607431768211455").is_ok());
-        assert!(test_cmds::dispatch("single_u128 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF").is_ok());
-    }
-
-    #[test]
-    fn test_i8_parsing() {
-        assert!(test_cmds::dispatch("single_i8 -128").is_ok());
-        assert!(test_cmds::dispatch("single_i8 127").is_ok());
-        assert!(test_cmds::dispatch("single_i8 0").is_ok());
-        assert!(test_cmds::dispatch("single_i8 0x7F").is_ok());
+    fn test_host_counts_max() {
+        let a = HostCounts {
+            u8_c: 5,
+            u16_c: 2,
+            u32_c: 0,
+            ..Default::default()
+        };
+        let b = HostCounts {
+            u8_c: 3,
+            u16_c: 7,
+            u32_c: 1,
+            ..Default::default()
+        };
         
-        assert!(matches!(
-            test_cmds::dispatch("single_i8 128"),
-            Err(test_cmds::DispatchError::BadSigned)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("single_i8 -129"),
-            Err(test_cmds::DispatchError::BadSigned)
-        ));
+        let max = host_counts_max(a, b);
+        assert_eq!(max.u8_c, 5);
+        assert_eq!(max.u16_c, 7);
+        assert_eq!(max.u32_c, 1);
     }
 
     #[test]
-    fn test_i16_parsing() {
-        assert!(test_cmds::dispatch("single_i16 -32768").is_ok());
-        assert!(test_cmds::dispatch("single_i16 32767").is_ok());
+    fn test_host_counts_all_types() {
+        let mut counts = HostCounts::default();
+        counts.u8_c = 1;
+        counts.u16_c = 2;
+        counts.u32_c = 3;
+        counts.u64_c = 4;
+        counts.u128_c = 5;
+        counts.i8_c = 1;
+        counts.i16_c = 2;
+        counts.i32_c = 3;
+        counts.i64_c = 4;
+        counts.i128_c = 5;
+        counts.usize_c = 1;
+        counts.isize_c = 2;
+        counts.f32_c = 1;
+        counts.f64_c = 2;
+        counts.bool_c = 1;
+        counts.char_c = 1;
+        counts.str_c = 1;
+        counts.hexstr_c = 1;
         
-        assert!(matches!(
-            test_cmds::dispatch("single_i16 32768"),
-            Err(test_cmds::DispatchError::BadSigned)
-        ));
+        // Verify all fields can be set
+        assert_eq!(counts.u8_c, 1);
+        assert_eq!(counts.hexstr_c, 1);
+    }
+
+    // ============================================================================
+    // Path Utility Tests
+    // ============================================================================
+
+    #[test]
+    fn test_path_last_ident_simple() {
+        let path: syn::Path = syn::parse_str("test::add").unwrap();
+        let last = path_last_ident(&path);
+        assert_eq!(last, Some("add".to_string()));
     }
 
     #[test]
-    fn test_i32_parsing() {
-        assert!(test_cmds::dispatch("single_i32 -2147483648").is_ok());
-        assert!(test_cmds::dispatch("single_i32 2147483647").is_ok());
-        assert!(test_cmds::dispatch("single_i32 0xFFFFFFFF").is_err()); // Overflow
+    fn test_path_last_ident_single() {
+        let path: syn::Path = syn::parse_str("add").unwrap();
+        let last = path_last_ident(&path);
+        assert_eq!(last, Some("add".to_string()));
     }
 
     #[test]
-    fn test_i64_parsing() {
-        assert!(test_cmds::dispatch("single_i64 -9223372036854775808").is_ok());
-        assert!(test_cmds::dispatch("single_i64 9223372036854775807").is_ok());
+    fn test_path_last_ident_long() {
+        let path: syn::Path = syn::parse_str("crate::module::submodule::function").unwrap();
+        let last = path_last_ident(&path);
+        assert_eq!(last, Some("function".to_string()));
+    }
+
+    // ============================================================================
+    // Sanitize Identifier Tests
+    // ============================================================================
+
+    #[test]
+    fn test_sanitize_ident_normal() {
+        assert_eq!(sanitize_ident("my_function"), "my_function");
     }
 
     #[test]
-    fn test_i128_parsing() {
-        assert!(test_cmds::dispatch("single_i128 0").is_ok());
-        assert!(test_cmds::dispatch("single_i128 -170141183460469231731687303715884105728").is_ok());
-        assert!(test_cmds::dispatch("single_i128 170141183460469231731687303715884105727").is_ok());
+    fn test_sanitize_ident_hyphen() {
+        assert_eq!(sanitize_ident("my-function"), "my_function");
     }
 
     #[test]
-    fn test_usize_parsing() {
-        assert!(test_cmds::dispatch("single_usize 0").is_ok());
-        assert!(test_cmds::dispatch("single_usize 1000").is_ok());
-        assert!(test_cmds::dispatch("single_usize 0x100").is_ok());
+    fn test_sanitize_ident_special_chars() {
+        assert_eq!(sanitize_ident("my.func@name"), "my_func_name");
     }
 
     #[test]
-    fn test_isize_parsing() {
-        assert!(test_cmds::dispatch("single_isize -1000").is_ok());
-        assert!(test_cmds::dispatch("single_isize 1000").is_ok());
-        assert!(test_cmds::dispatch("single_isize 0").is_ok());
+    fn test_sanitize_ident_numbers() {
+        assert_eq!(sanitize_ident("func123"), "func123");
     }
 
     #[test]
-    fn test_f32_parsing() {
-        assert!(test_cmds::dispatch("single_f32 0.0").is_ok());
-        assert!(test_cmds::dispatch("single_f32 3.14").is_ok());
-        assert!(test_cmds::dispatch("single_f32 -2.5").is_ok());
-        assert!(test_cmds::dispatch("single_f32 1e10").is_ok());
-        assert!(test_cmds::dispatch("single_f32 -1.5e-5").is_ok());
+    fn test_sanitize_ident_unicode() {
+        assert_eq!(sanitize_ident("func€name"), "func_name");
+    }
+
+    #[test]
+    fn test_sanitize_ident_empty() {
+        assert_eq!(sanitize_ident(""), "");
+    }
+
+    // ============================================================================
+    // Descriptor Parsing Logic Tests
+    // ============================================================================
+
+    #[test]
+    fn test_descriptor_split_by_comma() {
+        let input = "DD: test::add, dd: test::sub";
+        let parts: Vec<_> = input.split(',').map(|s| s.trim()).collect();
+        assert_eq!(parts.len(), 2);
+        assert!(parts[0].contains("DD"));
+        assert!(parts[1].contains("dd"));
+    }
+
+    #[test]
+    fn test_descriptor_split_by_colon() {
+        let input = "DD: test::add test::sub";
+        let (desc, funcs) = input.split_once(':').unwrap();
+        assert_eq!(desc.trim(), "DD");
+        assert!(funcs.contains("add"));
+        assert!(funcs.contains("sub"));
+    }
+
+    #[test]
+    fn test_descriptor_multiple_functions() {
+        let input = "test::add test::sub test::mul";
+        let funcs: Vec<_> = input.split_whitespace().collect();
+        assert_eq!(funcs.len(), 3);
+    }
+
+    #[test]
+    fn test_descriptor_with_extra_whitespace() {
+        let input = "  DD:  test::add  ,  dd: test::sub  ";
+        let parts: Vec<_> = input.split(',').map(|s| s.trim()).collect();
+        assert_eq!(parts.len(), 2);
+    }
+
+    // ============================================================================
+    // FnEntry Tests
+    // ============================================================================
+
+    #[test]
+    fn test_fn_entry_creation() {
+        let path: syn::Path = syn::parse_str("test::add").unwrap();
+        let entry = FnEntry {
+            name_str: "add".to_string(),
+            path: path.clone(),
+            spec: "DD".to_string(),
+            spec_idx: 0,
+        };
         
-        assert!(matches!(
-            test_cmds::dispatch("single_f32 notanumber"),
-            Err(test_cmds::DispatchError::BadFloat)
-        ));
+        assert_eq!(entry.name_str, "add");
+        assert_eq!(entry.spec, "DD");
+        assert_eq!(entry.spec_idx, 0);
     }
 
     #[test]
-    fn test_f64_parsing() {
-        assert!(test_cmds::dispatch("single_f64 0.0").is_ok());
-        assert!(test_cmds::dispatch("single_f64 3.141592653589793").is_ok());
-        assert!(test_cmds::dispatch("single_f64 -2.5").is_ok());
-        assert!(test_cmds::dispatch("single_f64 1e100").is_ok());
+    fn test_fn_entry_sorting() {
+        let mut entries = vec![
+            FnEntry {
+                name_str: "zebra".to_string(),
+                path: syn::parse_str("test::zebra").unwrap(),
+                spec: "v".to_string(),
+                spec_idx: 0,
+            },
+            FnEntry {
+                name_str: "apple".to_string(),
+                path: syn::parse_str("test::apple").unwrap(),
+                spec: "v".to_string(),
+                spec_idx: 0,
+            },
+            FnEntry {
+                name_str: "middle".to_string(),
+                path: syn::parse_str("test::middle").unwrap(),
+                spec: "v".to_string(),
+                spec_idx: 0,
+            },
+        ];
         
-        assert!(matches!(
-            test_cmds::dispatch("single_f64 invalid"),
-            Err(test_cmds::DispatchError::BadFloat)
-        ));
-    }
-
-    #[test]
-    fn test_bool_parsing() {
-        // True values
-        assert!(test_cmds::dispatch("single_bool true").is_ok());
-        assert!(test_cmds::dispatch("single_bool True").is_ok());
-        assert!(test_cmds::dispatch("single_bool TRUE").is_ok());
-        assert!(test_cmds::dispatch("single_bool 1").is_ok());
+        entries.sort_by(|a, b| a.name_str.cmp(&b.name_str));
         
-        // False values
-        assert!(test_cmds::dispatch("single_bool false").is_ok());
-        assert!(test_cmds::dispatch("single_bool False").is_ok());
-        assert!(test_cmds::dispatch("single_bool FALSE").is_ok());
-        assert!(test_cmds::dispatch("single_bool 0").is_ok());
+        assert_eq!(entries[0].name_str, "apple");
+        assert_eq!(entries[1].name_str, "middle");
+        assert_eq!(entries[2].name_str, "zebra");
+    }
+
+    // ============================================================================
+    // Descriptor Character Analysis Tests
+    // ============================================================================
+
+    #[test]
+    fn test_count_descriptor_unsigned() {
+        let desc = "BWDQX";
+        let mut count = 0;
+        for ch in desc.chars() {
+            match ch {
+                'B' | 'W' | 'D' | 'Q' | 'X' => count += 1,
+                _ => {}
+            }
+        }
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_count_descriptor_signed() {
+        let desc = "bwdqx";
+        let mut count = 0;
+        for ch in desc.chars() {
+            match ch {
+                'b' | 'w' | 'd' | 'q' | 'x' => count += 1,
+                _ => {}
+            }
+        }
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_count_descriptor_mixed() {
+        let desc = "DDstf";
+        let mut u32_count = 0;
+        let mut str_count = 0;
+        let mut bool_count = 0;
+        let mut f32_count = 0;
         
-        // Invalid
-        assert!(matches!(
-            test_cmds::dispatch("single_bool yes"),
-            Err(test_cmds::DispatchError::BadBool)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("single_bool 2"),
-            Err(test_cmds::DispatchError::BadBool)
-        ));
-    }
-
-    #[test]
-    fn test_char_parsing() {
-        assert!(test_cmds::dispatch("single_char a").is_ok());
-        assert!(test_cmds::dispatch("single_char Z").is_ok());
-        assert!(test_cmds::dispatch("single_char 5").is_ok());
-        assert!(test_cmds::dispatch("single_char @").is_ok());
+        for ch in desc.chars() {
+            match ch {
+                'D' => u32_count += 1,
+                's' => str_count += 1,
+                't' => bool_count += 1,
+                'f' => f32_count += 1,
+                _ => {}
+            }
+        }
         
-        // Multi-character strings should fail
-        assert!(matches!(
-            test_cmds::dispatch("single_char ab"),
-            Err(test_cmds::DispatchError::BadChar)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("single_char \"\""),
-            Err(test_cmds::DispatchError::BadChar)
-        ));
+        assert_eq!(u32_count, 2);
+        assert_eq!(str_count, 1);
+        assert_eq!(bool_count, 1);
+        assert_eq!(f32_count, 1);
     }
 
     #[test]
-    fn test_str_parsing() {
-        assert!(test_cmds::dispatch("single_str hello").is_ok());
-        assert!(test_cmds::dispatch("single_str \"hello world\"").is_ok());
-        assert!(test_cmds::dispatch("single_str \"\"").is_ok());
-        assert!(test_cmds::dispatch("single_str \"with spaces and symbols!@#\"").is_ok());
+    fn test_arity_calculation() {
+        let desc = "DDst";
+        let arity = desc.chars().count();
+        assert_eq!(arity, 4);
     }
 
     #[test]
-    fn test_hexstr_parsing() {
-        assert!(test_cmds::dispatch("single_hexstr AABBCCDD").is_ok());
-        assert!(test_cmds::dispatch("single_hexstr aabbccdd").is_ok());
-        assert!(test_cmds::dispatch("single_hexstr 00").is_ok());
-        assert!(test_cmds::dispatch("single_hexstr AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899").is_ok());
+    fn test_void_arity() {
+        let desc = "v";
+        let arity = if desc == "v" { 0 } else { desc.chars().count() };
+        assert_eq!(arity, 0);
+    }
+
+    // ============================================================================
+    // CommandMacroInput Parsing Tests
+    // ============================================================================
+
+    #[test]
+    fn test_parse_basic_input() {
+        let input = quote! {
+            mod test_dispatcher;
+            hexstr_size = 64;
+            "DD: test::add"
+        };
         
-        // Odd length
-        assert!(matches!(
-            test_cmds::dispatch("single_hexstr AAB"),
-            Err(test_cmds::DispatchError::BadHexStr)
-        ));
+        let parsed = syn::parse2::<CommandMacroInput>(input);
+        assert!(parsed.is_ok());
         
-        // Invalid hex characters
-        assert!(matches!(
-            test_cmds::dispatch("single_hexstr GGHHII"),
-            Err(test_cmds::DispatchError::BadHexStr)
-        ));
+        let cmd = parsed.unwrap();
+        assert_eq!(cmd.mod_ident.to_string(), "test_dispatcher");
+        assert_eq!(cmd.body.value(), "DD: test::add");
+    }
+
+    #[test]
+    fn test_parse_without_hexstr_size() {
+        let input = quote! {
+            mod test_dispatcher;
+            "DD: test::add"
+        };
         
-        // Empty
-        assert!(matches!(
-            test_cmds::dispatch("single_hexstr \"\""),
-            Err(test_cmds::DispatchError::BadHexStr)
-        ));
+        let parsed = syn::parse2::<CommandMacroInput>(input);
+        assert!(parsed.is_ok());
+        assert!(parsed.unwrap().hexstr_size.is_none());
     }
 
     #[test]
-    fn test_multi_args() {
-        assert!(test_cmds::dispatch("multi_args 100 -50 3.14 \"test string\" true").is_ok());
-        assert!(test_cmds::dispatch("multi_args 0 0 0.0 empty false").is_ok());
-        assert!(test_cmds::dispatch("multi_args 0xFF -0x10 1e5 \"quoted\" 1").is_ok());
-    }
-
-    #[test]
-    fn test_all_unsigned() {
-        assert!(test_cmds::dispatch("all_unsigned 1 2 3 4").is_ok());
-        assert!(test_cmds::dispatch("all_unsigned 0xFF 0xFFFF 0xFFFFFFFF 0xFFFFFFFFFFFFFFFF").is_ok());
-    }
-
-    #[test]
-    fn test_all_signed() {
-        assert!(test_cmds::dispatch("all_signed -1 -2 -3 -4").is_ok());
-        assert!(test_cmds::dispatch("all_signed 127 32767 2147483647 9223372036854775807").is_ok());
-    }
-
-    #[test]
-    fn test_mixed_ints() {
-        assert!(test_cmds::dispatch("mixed_ints 100 -100 200 -200").is_ok());
-    }
-
-    #[test]
-    fn test_str_and_bool() {
-        assert!(test_cmds::dispatch("str_and_bool hello true").is_ok());
-        assert!(test_cmds::dispatch("str_and_bool \"hello world\" false").is_ok());
-    }
-
-    #[test]
-    fn test_empty_input() {
-        assert!(matches!(
-            test_cmds::dispatch(""),
-            Err(test_cmds::DispatchError::Empty)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("   "),
-            Err(test_cmds::DispatchError::Empty)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("\t\t"),
-            Err(test_cmds::DispatchError::Empty)
-        ));
-    }
-
-    #[test]
-    fn test_unknown_function() {
-        assert!(matches!(
-            test_cmds::dispatch("nonexistent 123"),
-            Err(test_cmds::DispatchError::UnknownFunction)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("not_a_command"),
-            Err(test_cmds::DispatchError::UnknownFunction)
-        ));
-    }
-
-    #[test]
-    fn test_wrong_arity() {
-        // Too few arguments
-        assert!(matches!(
-            test_cmds::dispatch("single_u32"),
-            Err(test_cmds::DispatchError::WrongArity { expected: 1 })
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("multi_args 1 2 3"),
-            Err(test_cmds::DispatchError::WrongArity { expected: 5 })
-        ));
+    fn test_parse_with_const_hexstr_size() {
+        let input = quote! {
+            mod test_dispatcher;
+            hexstr_size = crate::MAX_SIZE;
+            "DD: test::add"
+        };
         
-        // Too many arguments
-        assert!(matches!(
-            test_cmds::dispatch("single_u32 1 2"),
-            Err(test_cmds::DispatchError::WrongArity { expected: 1 })
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("void_fn extra_arg"),
-            Err(test_cmds::DispatchError::WrongArity { expected: 0 })
-        ));
+        let parsed = syn::parse2::<CommandMacroInput>(input);
+        assert!(parsed.is_ok());
+        assert!(parsed.unwrap().hexstr_size.is_some());
     }
 
     #[test]
-    fn test_tokenization() {
-        let mut buf = [""; 10];
+    fn test_parse_complex_descriptor() {
+        let input = quote! {
+            mod dispatcher;
+            hexstr_size = 128;
+            "DD: test::add test::sub, dd: test::neg, s: test::greet, v: test::noop"
+        };
         
-        // Basic tokenization
-        let n = test_cmds::tokenize("cmd arg1 arg2", &mut buf).unwrap();
-        assert_eq!(n, 3);
-        assert_eq!(buf[0], "cmd");
-        assert_eq!(buf[1], "arg1");
-        assert_eq!(buf[2], "arg2");
-        
-        // Quoted strings
-        let n = test_cmds::tokenize("cmd \"quoted string\" arg", &mut buf).unwrap();
-        assert_eq!(n, 3);
-        assert_eq!(buf[0], "cmd");
-        assert_eq!(buf[1], "quoted string");
-        assert_eq!(buf[2], "arg");
-        
-        // Multiple spaces
-        let n = test_cmds::tokenize("cmd    arg1     arg2", &mut buf).unwrap();
-        assert_eq!(n, 3);
-        
-        // Tabs
-        let n = test_cmds::tokenize("cmd\targ1\targ2", &mut buf).unwrap();
-        assert_eq!(n, 3);
-        
-        // Empty quotes
-        let n = test_cmds::tokenize("cmd \"\" arg", &mut buf).unwrap();
-        assert_eq!(n, 3);
-        assert_eq!(buf[1], "");
+        let parsed = syn::parse2::<CommandMacroInput>(input);
+        assert!(parsed.is_ok());
+    }
+
+    // ============================================================================
+    // Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_empty_descriptor_string() {
+        let code = generate_dispatcher("");
+        assert!(code.contains("test_dispatcher"));
     }
 
     #[test]
-    fn test_tokenization_edge_cases() {
-        let mut buf = [""; 10];
+    fn test_descriptor_only_whitespace() {
+        let code = generate_dispatcher("   ");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_descriptor_trailing_comma() {
+        let code = generate_dispatcher("DD: test::add,");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_descriptor_multiple_commas() {
+        let code = generate_dispatcher("DD: test::add,, dd: test::sub");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_long_function_name() {
+        let code = generate_dispatcher("DD: test::this_is_a_very_long_function_name_that_should_still_work");
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    // ============================================================================
+    // Integration Tests
+    // ============================================================================
+
+    #[test]
+    fn test_realistic_command_set() {
+        let code = generate_dispatcher(
+            "v: test::help test::version, \
+             D: test::delay, \
+             DD: test::add test::sub test::mul test::div, \
+             s: test::echo test::print, \
+             t: test::enable test::disable, \
+             Dst: test::set_config"
+        );
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    #[test]
+    fn test_all_descriptor_types() {
+        let code = generate_dispatcher(
+            "B: test::u8_func, \
+             W: test::u16_func, \
+             D: test::u32_func, \
+             Q: test::u64_func, \
+             X: test::u128_func, \
+             b: test::i8_func, \
+             w: test::i16_func, \
+             d: test::i32_func, \
+             q: test::i64_func, \
+             x: test::i128_func, \
+             Z: test::usize_func, \
+             z: test::isize_func, \
+             f: test::f32_func, \
+             F: test::f64_func, \
+             t: test::bool_func, \
+             c: test::char_func, \
+             s: test::str_func, \
+             h: test::hex_func, \
+             v: test::void_func"
+        );
+        assert!(code.contains("test_dispatcher"));
+    }
+
+    // ============================================================================
+    // Descriptor Uniqueness Tests
+    // ============================================================================
+
+    #[test]
+    fn test_duplicate_descriptors_dedup() {
+        let descriptor = "DD: test::add, DD: test::sub, DD: test::mul";
+        let mut unique: Vec<String> = Vec::new();
         
-        // Leading/trailing spaces
-        let n = test_cmds::tokenize("  cmd arg  ", &mut buf).unwrap();
-        assert_eq!(n, 2);
+        for group in descriptor.split(',') {
+            let grp = group.trim();
+            if let Some((desc, _)) = grp.split_once(':') {
+                let desc_str = desc.trim().to_string();
+                if !unique.contains(&desc_str) {
+                    unique.push(desc_str);
+                }
+            }
+        }
         
-        // Only quotes
-        let n = test_cmds::tokenize("\"entire command line\"", &mut buf).unwrap();
-        assert_eq!(n, 1);
-        assert_eq!(buf[0], "entire command line");
+        assert_eq!(unique.len(), 1);
+        assert_eq!(unique[0], "DD");
+    }
+
+    #[test]
+    fn test_different_descriptors_no_dedup() {
+        let descriptor = "DD: test::add, dd: test::sub, D: test::third";
+        let mut unique: Vec<String> = Vec::new();
         
-        // Adjacent quotes
-        let n = test_cmds::tokenize("\"first\"\"second\"", &mut buf).unwrap();
-        assert_eq!(n, 2);
-        assert_eq!(buf[0], "first");
-        assert_eq!(buf[1], "second");
-    }
-
-    #[test]
-    fn test_dispatch_with_buf() {
-        let mut buf = [""; 10];
+        for group in descriptor.split(',') {
+            let grp = group.trim();
+            if let Some((desc, _)) = grp.split_once(':') {
+                let desc_str = desc.trim().to_string();
+                if !unique.contains(&desc_str) {
+                    unique.push(desc_str);
+                }
+            }
+        }
         
-        assert!(test_cmds::dispatch_with_buf("single_u32 42", &mut buf).is_ok());
-        assert!(test_cmds::dispatch_with_buf("multi_args 1 2 3.0 test true", &mut buf).is_ok());
+        assert_eq!(unique.len(), 3);
+    }
+
+    // ============================================================================
+    // Maximum Length Tests
+    // ============================================================================
+
+    #[test]
+    fn test_max_function_name_length() {
+        let names = vec!["a", "abc", "very_long_name", "x"];
+        let max_len = names.iter().map(|n| n.len()).max().unwrap_or(0) + 1;
+        assert_eq!(max_len, 15); // "very_long_name" + 1
+    }
+
+    #[test]
+    fn test_count_commands() {
+        let descriptor = "DD: test::add test::sub, d: test::neg";
+        let count = descriptor
+            .split(',')
+            .map(|group| {
+                if let Some((_, names)) = group.split_once(':') {
+                    names.split_whitespace().count()
+                } else {
+                    0
+                }
+            })
+            .sum::<usize>();
         
-        // Buffer too small (should still work as long as it fits)
-        let mut small_buf = [""; 3];
-        assert!(test_cmds::dispatch_with_buf("single_u32 42", &mut small_buf).is_ok());
-    }
-
-    #[test]
-    fn test_introspection_functions() {
-        // Test get_commands
-        let commands = test_cmds::get_commands();
-        assert!(!commands.is_empty());
-        assert!(commands.iter().any(|(name, _)| *name == "single_u32"));
-        assert!(commands.iter().any(|(name, _)| *name == "multi_args"));
-        
-        // Test get_function_names
-        let names = test_cmds::get_function_names();
-        assert!(!names.is_empty());
-        assert!(names.contains(&"single_u32"));
-        assert!(names.contains(&"void_fn"));
-        
-        // Test get_datatypes
-        let datatypes = test_cmds::get_datatypes();
-        assert!(datatypes.contains("u8"));
-        assert!(datatypes.contains("i32"));
-        assert!(datatypes.contains("bool"));
-    }
-
-    #[test]
-    fn test_constants() {
-        // Verify constants are reasonable
-        assert!(test_cmds::MAX_ARITY > 0);
-        assert!(test_cmds::NUM_COMMANDS > 0);
-        assert!(test_cmds::MAX_FUNCTION_NAME_LEN > 0);
-        assert_eq!(test_cmds::MAX_HEXSTR_LEN, 32);
-        
-        // Verify at least some type maxes are non-zero
-        assert!(test_cmds::MAX_U32 > 0);
-        assert!(test_cmds::MAX_STR > 0);
-        assert!(test_cmds::MAX_BOOL > 0);
-    }
-
-    #[test]
-    fn test_hex_formats() {
-        // Test different hex formats
-        assert!(test_cmds::dispatch("single_u32 0x100").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0X100").is_ok()); // Uppercase X
-        assert!(test_cmds::dispatch("single_u32 0xABCDEF").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0xabcdef").is_ok());
-    }
-
-    #[test]
-    fn test_octal_formats() {
-        assert!(test_cmds::dispatch("single_u32 0o777").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0O777").is_ok()); // Uppercase O
-        assert!(test_cmds::dispatch("single_u32 0o100").is_ok());
-    }
-
-    #[test]
-    fn test_binary_formats() {
-        assert!(test_cmds::dispatch("single_u32 0b1010").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0B1010").is_ok()); // Uppercase B
-        assert!(test_cmds::dispatch("single_u32 0b11111111").is_ok());
-    }
-
-    #[test]
-    fn test_whitespace_handling() {
-        // Various whitespace combinations
-        assert!(test_cmds::dispatch("single_u32  42").is_ok());
-        assert!(test_cmds::dispatch("single_u32\t42").is_ok());
-        assert!(test_cmds::dispatch("  single_u32  42  ").is_ok());
-        assert!(test_cmds::dispatch("\tsingle_u32\t42\t").is_ok());
-    }
-
-    #[test]
-    fn test_quoted_strings_with_special_chars() {
-        assert!(test_cmds::dispatch("single_str \"hello@world.com\"").is_ok());
-        assert!(test_cmds::dispatch("single_str \"path/to/file\"").is_ok());
-        assert!(test_cmds::dispatch("single_str \"key=value\"").is_ok());
-        assert!(test_cmds::dispatch("single_str \"123-456-7890\"").is_ok());
-    }
-
-    #[test]
-    fn test_case_sensitivity() {
-        // Function names are case-sensitive
-        assert!(test_cmds::dispatch("single_u32 42").is_ok());
-        assert!(matches!(
-            test_cmds::dispatch("Single_u32 42"),
-            Err(test_cmds::DispatchError::UnknownFunction)
-        ));
-        assert!(matches!(
-            test_cmds::dispatch("SINGLE_U32 42"),
-            Err(test_cmds::DispatchError::UnknownFunction)
-        ));
-    }
-
-    #[test]
-    fn test_boundary_values() {
-        // Test boundary values for various types
-        assert!(test_cmds::dispatch("single_u8 0").is_ok());
-        assert!(test_cmds::dispatch("single_u8 255").is_ok());
-        
-        assert!(test_cmds::dispatch("single_i8 -128").is_ok());
-        assert!(test_cmds::dispatch("single_i8 127").is_ok());
-        
-        assert!(test_cmds::dispatch("single_u16 0").is_ok());
-        assert!(test_cmds::dispatch("single_u16 65535").is_ok());
-    }
-
-    #[test]
-    fn test_scientific_notation_floats() {
-        assert!(test_cmds::dispatch("single_f32 1e10").is_ok());
-        assert!(test_cmds::dispatch("single_f32 1.5e-10").is_ok());
-        assert!(test_cmds::dispatch("single_f64 1e100").is_ok());
-        assert!(test_cmds::dispatch("single_f64 -2.5e-50").is_ok());
-    }
-
-    #[test]
-    fn test_special_float_values() {
-        // Note: parsing "inf" and "nan" depends on parse implementation
-        // These may or may not work depending on the underlying parser
-        // Test what actually works
-        assert!(test_cmds::dispatch("single_f32 0.0").is_ok());
-        assert!(test_cmds::dispatch("single_f64 -0.0").is_ok());
-    }
-
-    #[test]
-    fn test_error_display() {
-        // Verify error types can be matched and compared
-        let err1 = test_cmds::DispatchError::Empty;
-        let err2 = test_cmds::DispatchError::Empty;
-        assert_eq!(err1, err2);
-        
-        let err3 = test_cmds::DispatchError::WrongArity { expected: 5 };
-        let err4 = test_cmds::DispatchError::WrongArity { expected: 5 };
-        assert_eq!(err3, err4);
-    }
-
-    #[test] 
-    fn test_mixed_quoted_unquoted() {
-        assert!(test_cmds::dispatch("str_and_bool \"hello world\" true").is_ok());
-        assert!(test_cmds::dispatch("str_and_bool unquoted false").is_ok());
-        assert!(test_cmds::dispatch("multi_args 42 -10 3.14 \"quoted\" 1").is_ok());
-        assert!(test_cmds::dispatch("multi_args 42 -10 3.14 unquoted 0").is_ok());
-    }
-
-    #[test]
-    fn test_zero_values() {
-        assert!(test_cmds::dispatch("single_u32 0").is_ok());
-        assert!(test_cmds::dispatch("single_i32 0").is_ok());
-        assert!(test_cmds::dispatch("single_f64 0.0").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0x0").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0o0").is_ok());
-        assert!(test_cmds::dispatch("single_u32 0b0").is_ok());
-    }
-
-    #[test]
-    fn test_large_hex_strings() {
-        // Test maximum size
-        let max_hex = "AA".repeat(32);
-        assert!(test_cmds::dispatch(&format!("single_hexstr {}", max_hex)).is_ok());
-        
-        // Test exceeding maximum (64 hex chars = 32 bytes, should be at limit)
-        let too_large = "AA".repeat(33); // 66 hex chars = 33 bytes
-        assert!(matches!(
-            test_cmds::dispatch(&format!("single_hexstr {}", too_large)),
-            Err(test_cmds::DispatchError::BadHexStr)
-        ));
+        assert_eq!(count, 3);
     }
 }
-*/

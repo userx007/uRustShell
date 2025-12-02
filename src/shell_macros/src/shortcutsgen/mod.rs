@@ -293,16 +293,6 @@ mod tests {
         }
     }
 
-    // Generate the shortcut dispatcher module
-    // This would normally use the macro, but for testing we'll create a test file
-    const TEST_SHORTCUTS: &str = r#"
-!: { +: commands::bang_plus, -: commands::bang_minus, #: commands::bang_hash },
-+: { +: commands::plus_plus, -: commands::plus_minus, #: commands::plus_hash },
--: { +: commands::minus_plus, -: commands::minus_minus, #: commands::minus_hash },
-#: { !: commands::hash_bang, +: commands::hash_plus, ?: commands::hash_question },
-?: { !: commands::question_bang, +: commands::question_plus, ?: commands::question_question },
-"#;
-
     // Manual implementation for testing (simulating what the macro generates)
     mod shortcuts {
         use super::commands;
