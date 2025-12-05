@@ -1,7 +1,10 @@
+
 #[cfg(feature = "history-persistence")]
 extern crate std;
+
 #[cfg(feature = "history-persistence")]
 const HISTORY_FILENAME: &str  = ".hist";
+
 #[cfg(feature = "history-persistence")]
 use std::fmt::Write;
 
@@ -365,5 +368,663 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator for Hist
         // Move to the next entry for the next call.
         self.index += 1;
         result
+    }
+}
+
+// ==================== TEST =======================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    // Helper function to create a clean history for testing
+    fn new_test_history<const HTC: usize, const HME: usize>() -> History<HTC, HME> {
+        let mut history = History::new();
+        history.clear(); // Clear any loaded data from file
+        history
+    }
+
+    // ==================== BASIC FUNCTIONALITY TESTS ====================
+
+    #[test]
+    fn test_new_history_is_empty() {
+        let history = new_test_history::<1024, 10>();
+        assert!(history.is_empty());
+        assert_eq!(history.entry_size, 0);
+    }
+
+    #[test]
+    fn test_default_creates_empty_history() {
+        let mut history: History<1024, 10> = History::default();
+        history.clear(); // Clear any persisted data
+        assert!(history.is_empty());
+    }
+
+    #[test]
+    fn test_push_single_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        let result = history.push("test entry");
+        assert!(result);
+        assert_eq!(history.entry_size, 1);
+        assert!(!history.is_empty());
+    }
+
+    #[test]
+    fn test_push_and_retrieve() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        let entry: Option<String<1024>> = history.get(0);
+        assert_eq!(entry.as_deref(), Some("first"));
+    }
+
+    #[test]
+    fn test_push_multiple_entries() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        assert_eq!(history.entry_size, 3);
+        assert_eq!(history.get::<1024>(0).as_deref(), Some("first"));
+        assert_eq!(history.get::<1024>(1).as_deref(), Some("second"));
+        assert_eq!(history.get::<1024>(2).as_deref(), Some("third"));
+    }
+
+    #[test]
+    fn test_push_trims_whitespace() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("  trimmed  ");
+        let entry: Option<String<1024>> = history.get(0);
+        assert_eq!(entry.as_deref(), Some("trimmed"));
+    }
+
+    // ==================== DUPLICATE HANDLING TESTS ====================
+
+    #[test]
+    fn test_push_duplicate_rejected() {
+        let mut history = new_test_history::<1024, 10>();
+        assert!(history.push("duplicate"));
+        assert!(!history.push("duplicate"));
+        assert_eq!(history.entry_size, 1);
+    }
+
+    #[test]
+    fn test_push_duplicate_with_whitespace_rejected() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("test");
+        let result = history.push("  test  ");
+        assert!(!result);
+        assert_eq!(history.entry_size, 1);
+    }
+
+    #[test]
+    fn test_similar_but_not_duplicate_accepted() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("test1");
+        let result = history.push("test2");
+        assert!(result);
+        assert_eq!(history.entry_size, 2);
+    }
+
+    // ==================== CAPACITY TESTS ====================
+
+    #[test]
+    fn test_push_exceeds_byte_capacity_rejected() {
+        let mut history = new_test_history::<10, 5>();
+        let result = history.push("this is way too long");
+        assert!(!result);
+        assert_eq!(history.entry_size, 0);
+    }
+
+    #[test]
+    fn test_push_at_byte_capacity_limit() {
+        let mut history = new_test_history::<10, 5>();
+        let result = history.push("1234567890");
+        assert!(result);
+        assert_eq!(history.entry_size, 1);
+    }
+
+    #[test]
+    fn test_max_entries_capacity() {
+        let mut history = new_test_history::<1024, 3>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        history.push("fourth"); // Should evict "first"
+        
+        assert_eq!(history.entry_size, 3);
+        assert_eq!(history.get::<1024>(0).as_deref(), Some("second"));
+        assert_eq!(history.get::<1024>(1).as_deref(), Some("third"));
+        assert_eq!(history.get::<1024>(2).as_deref(), Some("fourth"));
+    }
+
+    #[test]
+    fn test_circular_buffer_wraps_correctly() {
+        let mut history = new_test_history::<20, 5>();
+        history.push("aaa");
+        history.push("bbb");
+        history.push("ccc");
+        history.push("ddd");
+        history.push("eee");
+        history.push("fff"); // Should evict "aaa"
+        
+        assert_eq!(history.entry_size, 5);
+        assert_eq!(history.get::<20>(0).as_deref(), Some("bbb"));
+    }
+
+    // ==================== NAVIGATION TESTS ====================
+
+    #[test]
+    fn test_get_prev_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("second"));
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("first"));
+    }
+
+    #[test]
+    fn test_get_prev_entry_wraps_around() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        history.get_prev_entry::<1024>(); // second
+        history.get_prev_entry::<1024>(); // first
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("third"));
+    }
+
+    #[test]
+    fn test_get_next_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        history.current_index = 0;
+        assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("second"));
+        assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("third"));
+    }
+
+    #[test]
+    fn test_get_next_entry_wraps_around() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        history.current_index = 2;
+        assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("first"));
+    }
+
+    #[test]
+    fn test_get_prev_entry_empty_history() {
+        let mut history = new_test_history::<1024, 10>();
+        assert_eq!(history.get_prev_entry::<1024>(), None);
+    }
+
+    #[test]
+    fn test_get_next_entry_empty_history() {
+        let mut history = new_test_history::<1024, 10>();
+        assert_eq!(history.get_next_entry::<1024>(), None);
+    }
+
+    // ==================== FIRST/LAST ENTRY TESTS ====================
+
+    #[test]
+    fn test_get_first_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("first"));
+    }
+
+    #[test]
+    fn test_get_last_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("third"));
+    }
+
+    #[test]
+    fn test_get_first_entry_empty() {
+        let history = new_test_history::<1024, 10>();
+        assert_eq!(history.get_first_entry::<1024>(), None);
+    }
+
+    #[test]
+    fn test_get_last_entry_empty() {
+        let history = new_test_history::<1024, 10>();
+        assert_eq!(history.get_last_entry::<1024>(), None);
+    }
+
+    #[test]
+    fn test_first_last_single_entry() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("only");
+        
+        assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("only"));
+        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("only"));
+    }
+
+    #[test]
+    fn test_first_last_after_eviction() {
+        let mut history = new_test_history::<1024, 3>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        history.push("fourth"); // Evicts "first"
+        
+        assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("second"));
+        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("fourth"));
+    }
+
+    // ==================== INDEX MANAGEMENT TESTS ====================
+
+    #[test]
+    fn test_set_index() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        history.set_index(1);
+        assert_eq!(history.current_index, 1);
+    }
+
+    #[test]
+    fn test_set_index_out_of_bounds() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        
+        let old_index = history.current_index;
+        history.set_index(10);
+        assert_eq!(history.current_index, old_index);
+    }
+
+    #[test]
+    fn test_get_invalid_index() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        
+        assert_eq!(history.get::<1024>(5), None);
+    }
+
+    #[test]
+    fn test_get_at_index() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        
+        let result = history.get_at_index::<1024>(1);
+        assert_eq!(result, Some((1, String::<1024>::try_from("second").unwrap())));
+    }
+
+    #[test]
+    fn test_get_at_index_invalid() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        
+        assert_eq!(history.get_at_index::<1024>(5), None);
+    }
+
+    // ==================== ITERATOR TESTS ====================
+
+    #[test]
+    fn test_iter_all_entries() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        let entries: Vec<String<1024>> = history.iter::<1024>().collect();
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].as_str(), "first");
+        assert_eq!(entries[1].as_str(), "second");
+        assert_eq!(entries[2].as_str(), "third");
+    }
+
+    #[test]
+    fn test_iter_empty_history() {
+        let history = new_test_history::<1024, 10>();
+        let entries: Vec<String<1024>> = history.iter::<1024>().collect();
+        assert_eq!(entries.len(), 0);
+    }
+
+    #[test]
+    fn test_iter_with_indexes() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        let entries: Vec<(usize, String<1024>)> = history.iter_with_indexes::<1024>().collect();
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].0, 0);
+        assert_eq!(entries[0].1.as_str(), "first");
+        assert_eq!(entries[2].0, 2);
+        assert_eq!(entries[2].1.as_str(), "third");
+    }
+
+    #[test]
+    fn test_iter_with_indexes_empty() {
+        let history = new_test_history::<1024, 10>();
+        let entries: Vec<(usize, String<1024>)> = history.iter_with_indexes::<1024>().collect();
+        assert_eq!(entries.len(), 0);
+    }
+
+    // ==================== CLEAR TESTS ====================
+
+    #[test]
+    fn test_clear_history() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        
+        history.clear();
+        
+        assert!(history.is_empty());
+        assert_eq!(history.entry_size, 0);
+        assert_eq!(history.data_head, 0);
+        assert_eq!(history.entry_head, 0);
+    }
+
+    #[test]
+    fn test_push_after_clear() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.clear();
+        history.push("new");
+        
+        assert_eq!(history.entry_size, 1);
+        assert_eq!(history.get::<1024>(0).as_deref(), Some("new"));
+    }
+
+    // ==================== FREE SPACE TESTS ====================
+
+    #[test]
+    fn test_get_free_space_empty() {
+        let history = new_test_history::<100, 5>();
+        let (free_bytes, free_entries) = history.get_free_space();
+        assert_eq!(free_bytes, 100);
+        assert_eq!(free_entries, 5);
+    }
+
+    #[test]
+    fn test_get_free_space_with_entries() {
+        let mut history = new_test_history::<100, 5>();
+        history.push("test"); // 4 bytes
+        
+        let (free_bytes, free_entries) = history.get_free_space();
+        assert_eq!(free_bytes, 96);
+        assert_eq!(free_entries, 4);
+    }
+
+    #[test]
+    fn test_get_free_space_full_entries() {
+        let mut history = new_test_history::<100, 3>();
+        history.push("a");
+        history.push("b");
+        history.push("c");
+        
+        let (_, free_entries) = history.get_free_space();
+        assert_eq!(free_entries, 0);
+    }
+
+    // ==================== EDGE CASE TESTS ====================
+/*
+    #[test]
+    fn test_empty_string_push() {
+        let mut history = new_test_history::<1024, 10>();
+        let result = history.push("");
+        assert!(!result);
+        assert_eq!(history.entry_size, 0);
+    }
+
+    #[test]
+    fn test_whitespace_only_push() {
+        let mut history = new_test_history::<1024, 10>();
+        let result = history.push("   ");
+        assert!(!result);
+        assert_eq!(history.entry_size, 0);
+    }
+
+    #[test]
+    fn test_unicode_entries() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("Hello 世界");
+        history.push("Привет мир");
+        
+        assert_eq!(history.get::<1024>(0).as_deref(), Some("Hello 世界"));
+        assert_eq!(history.get::<1024>(1).as_deref(), Some("Привет мир"));
+    }
+*/
+    #[test]
+    fn test_special_characters() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("!@#$%^&*()");
+        history.push("tab\there");
+        
+        assert_eq!(history.get::<1024>(0).as_deref(), Some("!@#$%^&*()"));
+        assert_eq!(history.get::<1024>(1).as_deref(), Some("tab\there"));
+    }
+
+    #[test]
+    fn test_truncation_with_small_iml() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("this is a long string");
+        
+        let short: Option<String<5>> = history.get(0);
+        assert_eq!(short.as_deref(), Some("this "));
+    }
+
+    // ==================== CIRCULAR BUFFER STRESS TESTS ====================
+
+    #[test]
+    fn test_many_small_entries() {
+        let mut history = new_test_history::<50, 20>();
+        for i in 0..15 {
+            history.push(&format!("{}", i));
+        }
+        
+        assert!(history.entry_size <= 20);
+        let last: Option<String<50>> = history.get_last_entry();
+        assert_eq!(last.as_deref(), Some("14"));
+    }
+
+    #[test]
+    fn test_alternating_sizes() {
+        let mut history = new_test_history::<100, 10>();
+        history.push("a");
+        history.push("longer string here");
+        history.push("b");
+        history.push("another long one");
+        
+        assert_eq!(history.entry_size, 4);
+    }
+
+    #[test]
+    fn test_fill_exact_capacity() {
+        let mut history = new_test_history::<10, 5>();
+        history.push("12"); // 2 bytes
+        history.push("34"); // 2 bytes
+        history.push("56"); // 2 bytes
+        history.push("78"); // 2 bytes
+        history.push("90"); // 2 bytes - total 10 bytes
+        
+        assert_eq!(history.entry_size, 5);
+    }
+
+    #[test]
+    fn test_force_multiple_evictions() {
+        let mut history = new_test_history::<20, 10>();
+        history.push("aa"); // 2 bytes
+        history.push("bb"); // 2 bytes
+        history.push("cc"); // 2 bytes
+        history.push("very long string"); // 16 bytes - should evict multiple
+        
+        // Should have evicted enough entries to fit the new one
+        assert!(history.entry_size >= 1);
+        assert_eq!(history.get_last_entry::<20>().as_deref(), Some("very long string"));
+    }
+
+    // ==================== CURRENT INDEX BEHAVIOR TESTS ====================
+
+    #[test]
+    fn test_current_index_after_push() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        assert_eq!(history.current_index, 0);
+        
+        history.push("second");
+        assert_eq!(history.current_index, 1);
+    }
+
+    #[test]
+    fn test_current_index_preserved_across_navigation() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        
+        history.get_prev_entry::<1024>();
+        let idx = history.current_index;
+        
+        history.get_prev_entry::<1024>();
+        assert_ne!(history.current_index, idx);
+    }
+
+    // ==================== INTEGRATION TESTS ====================
+
+    #[test]
+    fn test_complex_workflow() {
+        let mut history = new_test_history::<100, 5>();
+        
+        history.push("command1");
+        history.push("command2");
+        history.push("command3");
+        
+        assert_eq!(history.get_prev_entry::<100>().as_deref(), Some("command2"));
+        assert_eq!(history.get_prev_entry::<100>().as_deref(), Some("command1"));
+        assert_eq!(history.get_next_entry::<100>().as_deref(), Some("command2"));
+        
+        history.push("command4");
+        assert_eq!(history.get_last_entry::<100>().as_deref(), Some("command4"));
+        
+        let all: Vec<String<100>> = history.iter().collect();
+        assert_eq!(all.len(), 4);
+    }
+
+    #[test]
+    fn test_realistic_shell_history() {
+        let mut history = new_test_history::<1024, 100>();
+        
+        let commands = vec![
+            "ls -la",
+            "cd /home/user",
+            "git status",
+            "cargo build",
+            "cargo test",
+            "git commit -m 'fix bug'",
+            "git push origin main",
+        ];
+        
+        for cmd in commands.iter() {
+            history.push(cmd);
+        }
+        
+        assert_eq!(history.entry_size, 7);
+        assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("ls -la"));
+        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("git push origin main"));
+        
+        // Duplicate command rejected
+        assert!(!history.push("git status"));
+        assert_eq!(history.entry_size, 7);
+    }
+
+    // ==================== BOUNDARY TESTS ====================
+
+    #[test]
+    fn test_single_byte_entries() {
+        let mut history = new_test_history::<10, 10>();
+        for c in 'a'..'k' {
+            history.push(&c.to_string());
+        }
+        // Should have 10 entries of 1 byte each
+        assert_eq!(history.entry_size, 10);
+    }
+
+    #[test]
+    fn test_eviction_order() {
+        let mut history = new_test_history::<1024, 5>();
+        history.push("first");
+        history.push("second");
+        history.push("third");
+        history.push("fourth");
+        history.push("fifth");
+        
+        // Add one more to evict the oldest
+        history.push("sixth");
+        
+        // "first" should be evicted
+        assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("second"));
+        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("sixth"));
+    }
+
+    #[test]
+    fn test_navigation_after_eviction() {
+        let mut history = new_test_history::<1024, 3>();
+        history.push("a");
+        history.push("b");
+        history.push("c");
+        history.push("d"); // Evicts "a"
+        
+        // Navigate should work correctly
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("c"));
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("b"));
+        assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("d"));
+    }
+
+    #[test]
+    fn test_duplicate_detection_across_eviction() {
+        let mut history = new_test_history::<1024, 3>();
+        history.push("test");
+        history.push("other1");
+        history.push("other2");
+        history.push("other3"); // Evicts "test"
+        
+        // Now "test" should be accepted again since it was evicted
+        assert!(history.push("test"));
+    }
+
+    #[test]
+    fn test_very_long_string_near_limit() {
+        let mut history = new_test_history::<100, 5>();
+        let long_str = "a".repeat(99);
+        assert!(history.push(&long_str));
+        assert_eq!(history.entry_size, 1);
+    }
+
+    #[test]
+    fn test_multiple_gets_dont_modify_state() {
+        let mut history = new_test_history::<1024, 10>();
+        history.push("first");
+        history.push("second");
+        
+        let e1 = history.get::<1024>(0);
+        let e2 = history.get::<1024>(0);
+        let e3 = history.get::<1024>(1);
+        
+        assert_eq!(e1, e2);
+        assert_ne!(e1, e3);
+        assert_eq!(history.entry_size, 2);
     }
 }
