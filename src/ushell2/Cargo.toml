@@ -1,0 +1,22 @@
+[package]
+name = "ushell2"
+version = "0.1.0"
+edition = "2024"
+publish = true
+
+description = "Lightweight no_std shell runtime for interactive CLI applications"
+license = "MIT"
+repository = "https://github.com/userx007/uRustShell"
+homepage = "https://github.com/userx007/uRustShell"
+documentation = "https://docs.rs/ushell2"
+keywords = ["shell", "command-line"]
+categories = ["development-tools", "command-line-utilities"]
+authors = ["userx007 <vmpxxl@gmail.com>"]
+
+
+[dependencies]
+heapless = "0.9.1"
+ushell_input = "0.1.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }

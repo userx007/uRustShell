@@ -1,5 +1,18 @@
 # uRustShell
 
+### ushell2 : the shell public interface
+[![Crates.io](https://img.shields.io/crates/v/ushell2)](https://crates.io/crates/ushell2)
+[![License](https://img.shields.io/crates/l/ushell2)](https://opensource.org/licenses/MIT)
+
+### ushell_dispatcher : shell subcomponent 
+[![Crates.io](https://img.shields.io/crates/v/ushell_dispatcher)](https://crates.io/crates/ushell_dispatcher)
+[![License](https://img.shields.io/crates/l/ushell_dispatcher)](https://opensource.org/licenses/MIT)
+
+### ushell_input : shell subcomponent 
+[![Crates.io](https://img.shields.io/crates/v/ushell_input)](https://crates.io/crates/ushell_input)
+[![License](https://img.shields.io/crates/l/ushell_input)](https://opensource.org/licenses/MIT)
+
+
 ## Description
 This Rust crate provides a framework for building shell-based applications.
 Once launched, the application presents an interactive prompt that allows users to execute custom-defined commands.

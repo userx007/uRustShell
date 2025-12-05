@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "ushell_input",
     "ushell_dispatcher",
-    "ushell",
+    "ushell2",
     "examples/demo_app",
     "examples/ushell_config",
     "examples/usercode",

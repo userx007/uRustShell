@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 ushell_input   = { path = "../../ushell_input", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
 ushell_dispatcher = { path = "../../ushell_dispatcher" }
-ushell = { path = "../../ushell" }
+ushell2 = { path = "../../ushell2" }
 ushell_config = { path = "../ushell_config" }
 usercode     = { path = "../usercode"     }
 defmt        = { version = "0.3", optional = true }
