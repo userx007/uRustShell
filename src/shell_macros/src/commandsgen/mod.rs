@@ -27,15 +27,15 @@
 //! +------+-------+   +------+------+   +------+------+   +------+------+   +------+------+
 //! | z    | isize |   | f    | f64  |   | s    | &str |   | h    | &[u8]|
 //!+------+-------+   +------+------+   +------+------+   +------+------+
-
+//!
 //! Examples:
 //! - "DdFsb" => arguments: u32, i32, f64, &str, bool
 //! - "t"     => argument: bool
 //! - "v"     => argument: void
-
+//!
 //! ## Macro Input Format
 //! - DSL: `generate_commands_dispatcher!(mod m; \"dFs: path::to::f1 path::to::f2, t: path::to::f3\");`
-
+//!
 //! * Tokenization splits a command line into tokens, respecting **double quotes** for `&str`.
 //! * `dispatch(line)` parses the function name + arguments, checks **arity**, parses into a stack
 //!   `CallCtx`, and invokes the registered function.
@@ -43,10 +43,10 @@
 //!   across all descriptors.
 //! ## no_std
 //! - Uses `core` only; suitable for embedded/stack-only use.
-
+//!
 //! `DispatchError` reports: `Empty`, `UnknownFunction`, `WrongArity` and per-type parsing errors:
 //! `BadBool`, `BadChar`, `BadUnsigned`, `BadSigned`, `BadFloat`.
-
+//!
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
@@ -1036,10 +1036,8 @@ pub fn generate_commands_dispatcher_from_file(input: TokenStream) -> TokenStream
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let full_path = std::path::Path::new(&manifest_dir).join(path.value());
 
-    let raw_dsl = std::fs::read_to_string(&full_path).expect(&format!(
-        "Failed to read command descriptor file: {:?}",
-        full_path
-    ));
+    let raw_dsl = std::fs::read_to_string(&full_path)
+        .unwrap_or_else(|_| panic!("Failed to read command descriptor file: {:?}", full_path));
 
     let macro_input = quote! {
         mod #mod_name;

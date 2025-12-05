@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 /// DisplayRenderer: handles terminal output
+///
 pub struct DisplayRenderer;
 
 impl DisplayRenderer {
@@ -11,7 +12,7 @@ impl DisplayRenderer {
     /// - Moves the cursor to the correct position based on `cursor_pos`.
     /// - Ensures cursor position does not exceed content length.
     /// - Flushes stdout to apply changes immediately.
-
+    ///
     pub fn render(prompt: &str, content: &str, cursor_pos: usize) {
         let safe_cursor_pos = cursor_pos.min(content.len());
         print!("\r\x1B[K{}{}", prompt, content);
@@ -23,7 +24,7 @@ impl DisplayRenderer {
     ///
     /// - Useful for signaling invalid actions (e.g., backspace at start of buffer).
     /// - Flushes stdout to ensure the bell is triggered immediately.
-
+    ///
     pub fn bell() {
         print!("\x07");
         let _ = io::stdout().flush();
@@ -35,7 +36,7 @@ impl DisplayRenderer {
     /// - Moves the cursor back two positions.
     /// - Flushes stdout to apply changes immediately.
     /// - Can be used to visually separate sections or indicate limits.
-
+    ///
     pub fn boundary_marker() {
         print!("\x1B[31m|\x1B[0m\x1B[1D \x1B[1D");
         let _ = io::stdout().flush();

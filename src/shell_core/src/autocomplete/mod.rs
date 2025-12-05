@@ -4,6 +4,7 @@ use heapless::{String, Vec};
 /// - `'a`: Lifetime for string slices.
 /// - `NC`: Maximum number of candidates, NUM_COMMANDS.
 /// - `FNL`: Maximum function name length, MAX_FUNCTION_NAME_LEN.
+///
 pub struct Autocomplete<'a, const NC: usize, const FNL: usize> {
     /// All possible candidates for autocompletion.
     candidates: Vec<&'a str, NC>,
@@ -17,6 +18,7 @@ pub struct Autocomplete<'a, const NC: usize, const FNL: usize> {
 
 impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     /// Creates a new Autocomplete instance with the given candidates.
+    ///
     pub fn new(candidates: Vec<&'a str, NC>) -> Self {
         Self {
             candidates,
@@ -29,6 +31,7 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     /// Updates the input string and filters candidates accordingly.
     /// - If only one match, auto-completes input.
     /// - If multiple matches, fills input with the longest common prefix.
+    ///
     pub fn update_input(&mut self, new_input: String<FNL>) {
         self.input = new_input;
         self.filtered.clear();
@@ -48,6 +51,7 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     }
 
     /// cycles forward through filtered candidates.
+    ///
     pub fn cycle_forward(&mut self) {
         if self.filtered.is_empty() {
             return;
@@ -59,6 +63,7 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     }
 
     /// cycles backward through filtered candidates.
+    ///
     pub fn cycle_backward(&mut self) {
         if self.filtered.is_empty() {
             return;
@@ -74,11 +79,13 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     }
 
     /// Returns the current input string.
+    ///
     pub fn current_input(&self) -> &str {
         &self.input
     }
 
     /// Finds the longest common prefix among the filtered candidates.
+    ///
     fn longest_common_prefix(strings: &[&str]) -> String<FNL> {
         if strings.is_empty() {
             return String::new();
@@ -98,6 +105,7 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     }
 
     /// Resets the input, filtered candidates, and tab index.
+    ///
     pub fn reset(&mut self) {
         self.input.clear();
         self.filtered.clear();

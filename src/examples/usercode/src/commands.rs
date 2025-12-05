@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 pub fn init() {
-    println!("{}", "init | no-args");
+    println!("init | no-args");
 }
 
 pub fn read(descr: i8, nbytes: u32) {
@@ -16,7 +16,7 @@ pub fn write(filename: &str, nbytes: u64, val: u8) {
 }
 
 pub fn led(onoff: bool) {
-    if true == onoff {
+    if onoff {
         println!("led | ON");
     } else {
         println!("led | OFF");

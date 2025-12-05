@@ -1,7 +1,7 @@
-use shell_engine::Shell;
 use shell_config::{
     HISTORY_MAX_ENTRIES, HISTORY_TOTAL_CAPACITY, INPUT_MAX_LEN, MAX_HEXSTR_LEN, PROMPT,
 };
+use shell_engine::Shell;
 use shell_macros::{generate_commands_dispatcher, generate_shortcuts_dispatcher};
 
 use usercode::commands as uc;

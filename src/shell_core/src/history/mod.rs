@@ -11,6 +11,7 @@ use heapless::String;
 
 /// Metadata for a single entry in the history buffer.
 /// Stores the offset and length of the entry in the circular buffer.
+///
 #[derive(Copy, Clone)]
 pub struct EntryMeta {
     offset: usize,
@@ -20,6 +21,7 @@ pub struct EntryMeta {
 /// A fixed-size, circular history buffer for storing strings.
 /// - `HTC`: History Total Capacity (bytes in buffer)
 /// - `HME`: History Max Entries (number of entries)
+///
 pub struct History<const HTC: usize, const HME: usize> {
     data: [u8; HTC],
     entries: [Option<EntryMeta>; HME],
@@ -30,17 +32,21 @@ pub struct History<const HTC: usize, const HME: usize> {
 }
 
 /// Iterator over history entries, yielding only the string values.
+///
 pub struct HistoryIter<'a, const HTC: usize, const HME: usize, const IML: usize> {
     history: &'a History<HTC, HME>,
     index: usize,
 }
 
 /// Iterator over history entries, yielding (index, string) pairs.
+///
 pub struct HistoryWithIndexesIter<'a, const HTC: usize, const HME: usize, const IML: usize> {
     history: &'a History<HTC, HME>,
     index: usize,
 }
 
+/// Default
+///
 impl<const HTC: usize, const HME: usize> Default for History<HTC, HME> {
     /// Returns a new, empty history buffer.
     fn default() -> Self {
@@ -48,6 +54,8 @@ impl<const HTC: usize, const HME: usize> Default for History<HTC, HME> {
     }
 }
 
+/// Implement History
+///
 impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     /// Creates a new, empty history buffer.
     pub fn new() -> Self {
@@ -73,7 +81,8 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     /// - Trims whitespace.
     /// - Rejects if entry is too large or a duplicate.
     /// - Removes oldest entries if needed to make space.
-    /// Returns `true` if the entry was added, `false` otherwise.
+    /// - Returns `true` if the entry was added, `false` otherwise.
+    ///
     pub fn push(&mut self, s: &str) -> bool {
         let trimmed = s.trim();
         let bytes = trimmed.as_bytes();
@@ -83,10 +92,10 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         }
         // Check for duplicates
         for i in 0..self.entry_size {
-            if let Some(existing) = self.get::<HTC>(i) {
-                if existing.trim() == trimmed {
-                    return false;
-                }
+            if let Some(existing) = self.get::<HTC>(i)
+                && existing.trim() == trimmed
+            {
+                return false;
             }
         }
         // Calculate used space
@@ -128,6 +137,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Moves to the previous entry and returns it, if any.
+    ///
     pub fn get_prev_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
@@ -141,6 +151,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Moves to the next entry and returns it, if any.
+    ///
     pub fn get_next_entry<const IML: usize>(&mut self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
@@ -150,6 +161,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Returns the **first (oldest)** entry in history, if any.
+    ///
     pub fn get_first_entry<const IML: usize>(&self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
@@ -167,6 +179,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Returns the **last (most recent)** entry in history, if any.
+    ///
     pub fn get_last_entry<const IML: usize>(&self) -> Option<String<IML>> {
         if self.entry_size == 0 {
             return None;
@@ -184,6 +197,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Sets the current index to the given value, if valid.
+    ///
     pub fn set_index(&mut self, index: usize) {
         if index < self.entry_size {
             self.current_index = index;
@@ -191,11 +205,13 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Returns `true` if the history is empty.
+    ///
     pub fn is_empty(&self) -> bool {
         self.entry_size == 0
     }
 
     /// Gets the entry at the given index, if any.
+    ///
     pub fn get<const IML: usize>(&self, index: usize) -> Option<String<IML>> {
         if index >= self.entry_size {
             return None;
@@ -211,11 +227,13 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Gets the entry and its index as a tuple, if any.
+    ///
     pub fn get_at_index<const IML: usize>(&self, index: usize) -> Option<(usize, String<IML>)> {
         self.get::<IML>(index).map(|entry| (index, entry))
     }
 
     /// Returns an iterator over all entries.
+    ///
     pub fn iter<const IML: usize>(&self) -> HistoryIter<'_, HTC, HME, IML> {
         HistoryIter {
             history: self,
@@ -224,6 +242,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Returns an iterator over all entries with their indexes.
+    ///
     pub fn iter_with_indexes<const IML: usize>(&self) -> HistoryWithIndexesIter<'_, HTC, HME, IML> {
         HistoryWithIndexesIter {
             history: self,
@@ -232,6 +251,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Prints all entries and free space info to stdout.
+    ///
     pub fn show<const IML: usize>(&self) {
         if self.is_empty() {
             println!("⚠️ History is empty");
@@ -245,6 +265,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Clears all entries from the history.
+    ///
     pub fn clear(&mut self) {
         self.data_head = 0;
         self.entry_head = 0;
@@ -255,6 +276,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Returns the number of free bytes and free entry slots.
+    ///
     pub fn get_free_space(&self) -> (usize, usize) {
         // Calculate used bytes in the circular buffer
         let used_bytes = if self.data_head
@@ -278,6 +300,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     }
 
     /// Loads history entries from a file (if `history-persistence` feature is enabled).
+    ///
     #[cfg(feature = "history-persistence")]
     pub fn load_from_file(&mut self, path: &str) {
         use heapless::String as HString;
@@ -287,23 +310,23 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         if let Ok(file) = File::open(path) {
             let reader = BufReader::new(file);
             let mut lines: Vec<HString<256>, HME> = Vec::new();
-            for line_result in reader.lines() {
-                if let Ok(line) = line_result {
-                    if lines.len() == HME {
-                        lines.remove(0);
-                    }
-                    let mut hl_line = HString::new();
-                    let _ = write!(hl_line, "{}", line);
-                    let _ = lines.push(hl_line);
+            for line in reader.lines().flatten() {
+                if lines.len() == HME {
+                    lines.remove(0);
                 }
+                let mut hl_line = HString::new();
+                let _ = write!(hl_line, "{}", line);
+                let _ = lines.push(hl_line);
             }
+
             self.clear();
             for line in lines {
                 let _ = self.push(&line);
             }
         }
     }
-
+    /// Append to file (if `history-persistence` feature is enabled).
+    ///
     #[cfg(feature = "history-persistence")]
     pub fn append_to_file(&self, path: &str, entry: &str) {
         use std::fs::OpenOptions;
@@ -321,6 +344,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
 /// - `HTC`: History table capacity.
 /// - `HME`: History max entries.
 /// - `IML`: Item max length.
+///
 impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
     for HistoryIter<'a, HTC, HME, IML>
 {
@@ -330,6 +354,7 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
     /// Advances the iterator and returns the next value.
     ///
     /// Returns `None` when all entries have been iterated.
+    ///
     fn next(&mut self) -> Option<Self::Item> {
         // Check if we've reached the end of the history entries.
         if self.index >= self.history.entry_size {
@@ -353,6 +378,7 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
 /// - `HTC`: History table capacity.
 /// - `HME`: History max entries.
 /// - `IML`: Item max length.
+///
 impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
     for HistoryWithIndexesIter<'a, HTC, HME, IML>
 {
@@ -360,8 +386,8 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
     type Item = (usize, String<IML>);
 
     /// Advances the iterator and returns the next (index, value) pair.
-    ///
     /// Returns `None` when all entries have been iterated.
+    ///
     fn next(&mut self) -> Option<Self::Item> {
         // Check if we've reached the end of the history entries.
         if self.index >= self.history.entry_size {

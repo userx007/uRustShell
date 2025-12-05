@@ -19,6 +19,7 @@
 
 /// Represents a handle to the terminal's raw mode state.
 /// When dropped, restores the original terminal mode.
+///
 pub struct RawMode {
     #[cfg(unix)]
     /// Original terminal settings (Unix).
@@ -36,6 +37,7 @@ impl RawMode {
     ///
     /// # Panics
     /// Panics if unable to get or set terminal/console mode.
+    ///
     #[cfg(unix)]
     pub fn new(fd: i32) -> Self {
         use termios::*;

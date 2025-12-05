@@ -37,7 +37,7 @@ use crate::input::renderer::DisplayRenderer;
 /// - `history`: Command history manager (heap-allocated or stack-based depending on feature flags).
 /// - `buffer`: Input buffer for editing and cursor movement (heap-allocated or stack-based depending on feature flags).
 /// - `prompt`: Static prompt string displayed to the user.
-
+///
 pub struct InputParser<
     'a,
     const NC: usize,
@@ -78,7 +78,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// # Behavior
     /// - Initializes autocomplete candidates from the command names.
     /// - Constructs the history and input buffer, using heap or stack allocation depending on feature flags.
-
+    ///
     pub fn new(
         shell_commands: &'static [(&'static str, &'static str)],
         shell_datatypes: &'static str,
@@ -122,7 +122,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// - Displays a boundary marker and flushes stdout.
     ///
     /// Finally, renders the updated buffer and prompt to the display.
-
+    ///
     pub fn handle_char(&mut self, ch: char) {
         if self.buffer.insert(ch) {
             let input_full = self.buffer.to_string();
@@ -156,7 +156,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// If no character can be removed (e.g., buffer is empty), triggers a bell sound.
     ///
     /// Finally, re-renders the prompt and buffer display to reflect the current state.
-
+    ///
     pub fn handle_backspace(&mut self) {
         if self.buffer.backspace() {
             let input_full = self.buffer.to_string();
@@ -180,7 +180,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// - Appends the remainder of the original input (after `FNL`).
     ///
     /// Overwrites the buffer with the new input and re-renders the prompt and buffer display.
-
+    ///
     pub fn handle_tab(&mut self, reverse: bool) {
         if reverse {
             self.autocomplete.cycle_backward();
@@ -203,7 +203,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// Finalizes the input process by returning the current buffer content as a string.
     ///
     /// Converts the internal buffer to a `String<IML>` and returns it without modification.
-
+    ///
     pub fn finalize(&mut self) -> String<IML> {
         self.buffer.to_string()
     }
@@ -212,7 +212,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     ///
     /// Prints each command name and its specification, aligned for readability.
     /// Calculates the maximum command name length to ensure consistent formatting.
-
+    ///
     pub fn list_commands(&self) {
         println!("\r\n⚡ Commands:");
         let max_name_len = self
@@ -230,7 +230,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     ///
     /// - Calls `list_commands()` to print the command list.
     /// - Prints predefined shell shortcuts.
-
+    ///
     fn list_all(&self) {
         self.list_commands();
         print!(
@@ -251,7 +251,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     ///
     /// Returns a tuple:
     /// - `bool`: Indicates whether the command was handled.
-
+    ///
     fn handle_hashtag(&mut self, input: &str) -> (bool, Option<String<IML>>) {
         match input {
             "q" => (false, None),
@@ -305,7 +305,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// - Otherwise, the input is executed via the provided `exec` callback and stored in history.
     ///
     /// Returns `true` if input was successfully handled or executed, `false` if the user requested to quit.
-
+    ///
     pub fn parse_input<F>(&mut self, exec: F) -> bool
     where
         F: Fn(&String<IML>),
@@ -487,7 +487,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// - It is alphanumeric, a space, or falls within the printable ASCII range (`'!'` to `'~'`).
     ///
     /// Returns `true` if the byte is valid for input; otherwise, returns `false`.
-
+    ///
     fn valid_byte(b: u8) -> bool {
         let c = b as char;
         c.is_ascii() && (c.is_ascii_alphanumeric() || c == ' ' || matches!(c, '!'..='~'))
