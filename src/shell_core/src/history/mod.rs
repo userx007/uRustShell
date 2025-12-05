@@ -310,7 +310,7 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         if let Ok(file) = File::open(path) {
             let reader = BufReader::new(file);
             let mut lines: Vec<HString<256>, HME> = Vec::new();
-            for line in reader.lines().flatten() {
+            for line in reader.lines().map_while(Result::ok) {
                 if lines.len() == HME {
                     lines.remove(0);
                 }

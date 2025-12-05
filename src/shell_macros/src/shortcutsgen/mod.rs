@@ -81,7 +81,7 @@ pub fn generate_shortcuts_dispatcher_from_file(input: TokenStream) -> TokenStrea
     let full_path = std::path::Path::new(&manifest_dir).join(path.value());
 
     let raw = std::fs::read_to_string(&full_path)
-        .expect(&format!("Failed to read shortcut file: {:?}", full_path));
+        .unwrap_or_else(|_| panic!("Failed to read shortcut file: {:?}", full_path));
 
     let mut match_arms = vec![];
     let mut prefixes = std::collections::HashSet::new();
