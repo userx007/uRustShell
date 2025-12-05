@@ -61,10 +61,10 @@ version = "0.1.0"
 dependencies = [
  "defmt 0.3.100",
  "heapless",
+ "shell",
  "shell_config",
- "shell_core",
- "shell_engine",
- "shell_macros",
+ "shell_dispatcher",
+ "shell_input",
  "usercode",
 ]
 
@@ -134,35 +134,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "shell_input",
+ "winapi",
+]
+
+[[package]]
 name = "shell_config"
 version = "0.1.0"
 
 [[package]]
-name = "shell_core"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "termios",
- "winapi",
-]
-
-[[package]]
-name = "shell_engine"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "shell_core",
- "winapi",
-]
-
-[[package]]
-name = "shell_macros"
+name = "shell_dispatcher"
 version = "0.1.0"
 dependencies = [
  "heapless",
  "proc-macro2",
  "quote",
  "syn",
+ "winapi",
+]
+
+[[package]]
+name = "shell_input"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "termios",
  "winapi",
 ]
 

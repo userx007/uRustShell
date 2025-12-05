@@ -1,9 +1,9 @@
 [workspace]
 resolver = "3"
 members = [
-    "shell_core",
-    "shell_macros",
-    "shell_engine",
+    "shell_input",
+    "shell_dispatcher",
+    "shell",
     "examples/demo_app",
     "examples/shell_config",
     "examples/usercode",

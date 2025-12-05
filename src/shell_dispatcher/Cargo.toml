@@ -1,15 +1,15 @@
 [package]
-name = "shell_macros"
+name = "shell_dispatcher"
 version = "0.1.0"
 edition = "2024"
 
-description = "Procedural macros for the shell framework"
+description = "Procedural macros for generating command and shortcut dispatchers"
 license = "MIT"
 repository = "https://github.com/userx007/uRustShell"
 homepage = "https://github.com/userx007/uRustShell"
-documentation = "https://docs.rs/shell_core"
-keywords = ["shell", "template", "command-line", "framework"]
-categories = ["command-line-utilities"]
+documentation = "https://docs.rs/shell_input"
+keywords = ["shell", "macro", "command-line", "dispatcher", "repl"]
+categories = ["development-tools", "command-line-utilities"]
 authors = ["userx007 <vmpxxl@gmail.com>"]
 
 [dependencies]

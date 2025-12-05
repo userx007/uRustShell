@@ -1,12 +1,12 @@
 [package]
-name = "shell_engine"
+name = "shell"
 version = "0.1.0"
 edition = "2024"
 publish = false
 
 [dependencies]
 heapless = "0.9.1"
-shell_core   = { path = "../shell_core" }
+shell_input   = { path = "../shell_input" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }

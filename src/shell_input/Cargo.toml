@@ -1,5 +1,5 @@
 [package]
-name = "shell_core"
+name = "shell_input"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,7 +7,7 @@ description = "Core of the shell framework."
 license = "MIT"
 repository = "https://github.com/userx007/uRustShell"
 homepage = "https://github.com/userx007/uRustShell"
-documentation = "https://docs.rs/shell_core"
+documentation = "https://docs.rs/shell_input"
 keywords = ["shell", "template", "command-line", "framework"]
 categories = ["command-line-utilities"]
 authors = ["userx007 <vmpxxl@gmail.com>"]

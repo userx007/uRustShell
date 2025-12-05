@@ -5,9 +5,9 @@ edition = "2024"
 publish = false
 
 [dependencies]
-shell_core   = { path = "../../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
-shell_macros = { path = "../../shell_macros" }
-shell_engine = { path = "../../shell_engine" }
+shell_input   = { path = "../../shell_input", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+shell_dispatcher = { path = "../../shell_dispatcher" }
+shell = { path = "../../shell" }
 shell_config = { path = "../shell_config" }
 usercode     = { path = "../usercode"     }
 defmt        = { version = "0.3", optional = true }
