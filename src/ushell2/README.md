@@ -1,4 +1,4 @@
-# shell
+# ushell2
 
 A lightweight, `no_std` compatible shell runtime component for building interactive command-line interfaces in Rust.
 

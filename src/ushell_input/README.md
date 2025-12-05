@@ -1,4 +1,4 @@
-# shell_input
+# ushell_input
 
 A high-performance, embedded-friendly input handling library for building interactive shell and REPL applications in Rust. Designed for both standard and `no_std` environments with configurable heap/stack allocation.
 
