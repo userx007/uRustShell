@@ -1,0 +1,31 @@
+[package]
+name = "ushell_input"
+version = "0.1.0"
+edition = "2024"
+
+description = "Core of the shell framework."
+license = "MIT"
+repository = "https://github.com/userx007/uRustShell"
+homepage = "https://github.com/userx007/uRustShell"
+documentation = "https://docs.rs/ushell_input"
+keywords = ["shell", "template", "command-line", "framework"]
+categories = ["command-line-utilities"]
+authors = ["userx007 <vmpxxl@gmail.com>"]
+
+[dependencies]
+heapless = "0.9.1"
+
+[features]
+default = []          # no_std by default
+history-persistence = []
+heap-history = []
+heap-input-buffer = []
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi", "winbase"] }
+
+[target.'cfg(unix)'.dependencies]
+termios = "0.3.3"
+
+[lib]
+doctest = false

@@ -1,0 +1,27 @@
+[package]
+name = "ushell_dispatcher"
+version = "0.1.0"
+edition = "2024"
+
+description = "Procedural macros for generating command and shortcut dispatchers"
+license = "MIT"
+repository = "https://github.com/userx007/uRustShell"
+homepage = "https://github.com/userx007/uRustShell"
+documentation = "https://docs.rs/ushell_input"
+keywords = ["shell", "macro", "command-line", "dispatcher", "repl"]
+categories = ["development-tools", "command-line-utilities"]
+authors = ["userx007 <vmpxxl@gmail.com>"]
+
+[dependencies]
+syn = "2.0"
+quote = "1.0"
+proc-macro2 = "1.0"
+heapless = "0.9.1"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }
+
+[lib]
+proc-macro = true
+doctest = false
+

@@ -1,0 +1,33 @@
+[package]
+name = "demo_app"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ushell_input   = { path = "../../ushell_input", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+ushell_dispatcher = { path = "../../ushell_dispatcher" }
+ushell = { path = "../../ushell" }
+ushell_config = { path = "../ushell_config" }
+usercode     = { path = "../usercode"     }
+defmt        = { version = "0.3", optional = true }
+heapless     = "0.9.1"
+
+[features]
+default = []
+history-persistence = []
+heap-history = []
+heap-input-buffer = []
+defmt = ["dep:defmt"]
+
+
+# Remove bounds checks when parsing arguments (you already enforce arity)
+unchecked = []
+
+# Drop PARAM_SPECS/spec_idx to save a bit of flash
+no_diagnostics = []
+
+# Use a simpler match for very tiny function sets
+simple_lookup = []
+
+
