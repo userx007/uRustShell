@@ -254,13 +254,13 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     ///
     pub fn show<const IML: usize>(&self) {
         if self.is_empty() {
-            println!("⚠️ History is empty");
+            println!("History is empty");
         } else {
             self.iter_with_indexes::<IML>().for_each(|(index, entry)| {
                 println!("{:>3} : {}", index, entry);
             });
             let (free_bytes, free_entries) = self.get_free_space();
-            println!("📈 Left entries/bytes: {}/{}", free_entries, free_bytes);
+            println!("Left entries/bytes: {}/{}", free_entries, free_bytes);
         }
     }
 

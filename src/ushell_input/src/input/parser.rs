@@ -214,7 +214,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     /// Calculates the maximum command name length to ensure consistent formatting.
     ///
     pub fn list_commands(&self) {
-        println!("\r\n⚡ Commands:");
+        println!("\r\nCommands:");
         let max_name_len = self
             .shell_commands
             .iter()
@@ -234,10 +234,10 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     fn list_all(&self) {
         self.list_commands();
         print!(
-            "\n⚡ Shortcuts:\n### : list all\n##  : list cmds\n#q  : exit\n#h  : list history\n#c  : clear history\n#N  : exec from history at index N\n"
+            "\nShortcuts:\n### : list all\n##  : list cmds\n#q  : exit\n#h  : list history\n#c  : clear history\n#N  : exec from history at index N\n"
         );
-        print!("\n⚡ User shortcuts:\n{}\n", self.shell_shortcuts);
-        print!("\n📝 Arg types:\n{}\n", self.shell_datatypes);
+        print!("\nUser shortcuts:\n{}\n", self.shell_shortcuts);
+        print!("\nArg types:\n{}\n", self.shell_datatypes);
     }
 
     /// Handles special hashtag-prefixed input commands.
@@ -269,7 +269,7 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
             }
             "c" => {
                 self.history.clear();
-                println!("🧹 History cleared");
+                println!("History cleared");
                 (true, None)
             }
             _ => {
@@ -277,10 +277,10 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
                     if let Some(entry) = self.history.get(index) {
                         return (true, Some(entry));
                     } else {
-                        println!("⚠️ No history entry at index {}", index);
+                        println!("No history entry at index {}", index);
                     }
                 } else {
-                    println!("🚫 Not implemented");
+                    println!("Not implemented");
                 }
                 (true, None)
             }
