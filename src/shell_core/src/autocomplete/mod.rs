@@ -107,7 +107,7 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
 }
 
 
-// ==================== TEST =======================
+// ==================== TESTS =======================
 
 #[cfg(test)]
 mod tests {

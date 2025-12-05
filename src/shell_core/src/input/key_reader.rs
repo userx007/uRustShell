@@ -200,3 +200,151 @@ pub fn key_test() -> io::Result<()> {
     }
 }
 */
+
+// ==================== TESTS =======================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_key_enum_debug() {
+        // Verify that Key enum implements Debug correctly
+        let key = Key::ArrowUp;
+        assert_eq!(format!("{:?}", key), "ArrowUp");
+        
+        let char_key = Key::Char('a');
+        assert_eq!(format!("{:?}", char_key), "Char('a')");
+    }
+
+    #[test]
+    fn test_key_variants_exist() {
+        // Ensure all key variants can be constructed
+        let _keys = vec![
+            Key::ArrowUp,
+            Key::ArrowDown,
+            Key::ArrowLeft,
+            Key::ArrowRight,
+            Key::Home,
+            Key::End,
+            Key::Insert,
+            Key::Delete,
+            Key::PageUp,
+            Key::PageDown,
+            Key::Enter,
+            Key::Backspace,
+            Key::Tab,
+            Key::ShiftTab,
+            Key::CtrlU,
+            Key::CtrlK,
+            Key::CtrlD,
+            Key::Char('x'),
+        ];
+    }
+
+    #[test]
+    fn test_char_key_with_various_characters() {
+        // Test that Char variant works with different character types
+        let alphanumeric = Key::Char('A');
+        let numeric = Key::Char('5');
+        let special = Key::Char('!');
+        let space = Key::Char(' ');
+        let unicode = Key::Char('ü');
+
+        match alphanumeric {
+            Key::Char('A') => (),
+            _ => panic!("Expected Char('A')"),
+        }
+
+        match numeric {
+            Key::Char('5') => (),
+            _ => panic!("Expected Char('5')"),
+        }
+
+        match special {
+            Key::Char('!') => (),
+            _ => panic!("Expected Char('!')"),
+        }
+
+        match space {
+            Key::Char(' ') => (),
+            _ => panic!("Expected Char(' ')"),
+        }
+
+        match unicode {
+            Key::Char('ü') => (),
+            _ => panic!("Expected Char('ü')"),
+        }
+    }
+
+    // Pattern matching tests
+    #[test]
+    fn test_key_matching() {
+        fn is_arrow_key(key: &Key) -> bool {
+            matches!(key, Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight)
+        }
+
+        assert!(is_arrow_key(&Key::ArrowUp));
+        assert!(is_arrow_key(&Key::ArrowLeft));
+        assert!(!is_arrow_key(&Key::Enter));
+        assert!(!is_arrow_key(&Key::Char('a')));
+    }
+
+    #[test]
+    fn test_key_categorization() {
+        fn is_navigation_key(key: &Key) -> bool {
+            matches!(
+                key,
+                Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight
+                    | Key::Home | Key::End | Key::PageUp | Key::PageDown
+            )
+        }
+
+        fn is_editing_key(key: &Key) -> bool {
+            matches!(
+                key,
+                Key::Backspace | Key::Delete | Key::CtrlU | Key::CtrlK | Key::CtrlD
+            )
+        }
+
+        assert!(is_navigation_key(&Key::Home));
+        assert!(is_navigation_key(&Key::PageDown));
+        assert!(!is_navigation_key(&Key::Tab));
+
+        assert!(is_editing_key(&Key::Delete));
+        assert!(is_editing_key(&Key::CtrlU));
+        assert!(!is_editing_key(&Key::Enter));
+    }
+
+    #[test]
+    fn test_key_to_string_representation() {
+        fn key_name(key: &Key) -> &str {
+            match key {
+                Key::ArrowUp => "↑",
+                Key::ArrowDown => "↓",
+                Key::ArrowLeft => "←",
+                Key::ArrowRight => "→",
+                Key::Home => "Home",
+                Key::End => "End",
+                Key::Enter => "Enter",
+                Key::Backspace => "Backspace",
+                Key::Tab => "Tab",
+                Key::ShiftTab => "Shift+Tab",
+                Key::CtrlU => "Ctrl+U",
+                Key::CtrlK => "Ctrl+K",
+                Key::CtrlD => "Ctrl+D",
+                Key::Delete => "Delete",
+                Key::PageUp => "PgUp",
+                Key::PageDown => "PgDn",
+                Key::Insert => "Insert",
+                Key::Char(c) => return if c.is_whitespace() { "Space" } else { "Char" },
+            }
+        }
+
+        assert_eq!(key_name(&Key::ArrowUp), "↑");
+        assert_eq!(key_name(&Key::CtrlK), "Ctrl+K");
+        assert_eq!(key_name(&Key::Char(' ')), "Space");
+    }
+}
+
+

@@ -270,7 +270,8 @@ impl<const IML: usize> Default for InputBuffer<IML> {
     }
 }
 
-// ==================== TEST =======================
+// ==================== TESTS =======================
+
 #[cfg(test)]
 mod tests {
     use super::*;
