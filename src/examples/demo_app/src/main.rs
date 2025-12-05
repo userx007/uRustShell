@@ -1,4 +1,4 @@
-use shell_client::Shell;
+use shell_engine::Shell;
 use shell_config::{
     HISTORY_MAX_ENTRIES, HISTORY_TOTAL_CAPACITY, INPUT_MAX_LEN, MAX_HEXSTR_LEN, PROMPT,
 };

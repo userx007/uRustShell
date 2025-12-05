@@ -61,9 +61,9 @@ version = "0.1.0"
 dependencies = [
  "defmt 0.3.100",
  "heapless",
- "shell_client",
  "shell_config",
  "shell_core",
+ "shell_engine",
  "shell_macros",
  "usercode",
 ]
@@ -134,15 +134,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shell_client"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "shell_core",
- "winapi",
-]
-
-[[package]]
 name = "shell_config"
 version = "0.1.0"
 
@@ -152,6 +143,15 @@ version = "0.1.0"
 dependencies = [
  "heapless",
  "termios",
+ "winapi",
+]
+
+[[package]]
+name = "shell_engine"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "shell_core",
  "winapi",
 ]
 
