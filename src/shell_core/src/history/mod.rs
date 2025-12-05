@@ -780,33 +780,7 @@ mod tests {
     }
 
     // ==================== EDGE CASE TESTS ====================
-/*
-    #[test]
-    fn test_empty_string_push() {
-        let mut history = new_test_history::<1024, 10>();
-        let result = history.push("");
-        assert!(!result);
-        assert_eq!(history.entry_size, 0);
-    }
 
-    #[test]
-    fn test_whitespace_only_push() {
-        let mut history = new_test_history::<1024, 10>();
-        let result = history.push("   ");
-        assert!(!result);
-        assert_eq!(history.entry_size, 0);
-    }
-
-    #[test]
-    fn test_unicode_entries() {
-        let mut history = new_test_history::<1024, 10>();
-        history.push("Hello 世界");
-        history.push("Привет мир");
-        
-        assert_eq!(history.get::<1024>(0).as_deref(), Some("Hello 世界"));
-        assert_eq!(history.get::<1024>(1).as_deref(), Some("Привет мир"));
-    }
-*/
     #[test]
     fn test_special_characters() {
         let mut history = new_test_history::<1024, 10>();
