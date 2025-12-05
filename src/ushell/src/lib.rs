@@ -1,10 +1,11 @@
 use core::fmt::Debug;
 use heapless::String;
 
-use shell_input::input::parser::InputParser;
-use shell_input::terminal::RawMode;
+use ushell_input::input::parser::InputParser;
+use ushell_input::terminal::RawMode;
 
-pub struct Shell<
+#[allow(non_camel_case_types)]
+pub struct uShell<
     const NC: usize,
     const FNL: usize,
     const IML: usize,
@@ -26,7 +27,7 @@ impl<
     const HTC: usize,
     const HME: usize,
     ERRTYPE: Debug,
-> Shell<NC, FNL, IML, HTC, HME, ERRTYPE>
+> uShell<NC, FNL, IML, HTC, HME, ERRTYPE>
 {
     pub fn new(
         get_commands: fn() -> &'static [(&'static str, &'static str)],
@@ -77,8 +78,8 @@ fn exec<const IML: usize, ERRTYPE: Debug>(
     input: &String<IML>,
     is_shortcut: fn(&str) -> bool,
     command_dispatcher: fn(&str) -> Result<(), ERRTYPE>,
-    shortcut_dispatcher: fn(&str) -> Result<(), String<IML>>) 
-{
+    shortcut_dispatcher: fn(&str) -> Result<(), String<IML>>,
+) {
     let result: Result<(), String<IML>> = if is_shortcut(input) {
         shortcut_dispatcher(input)
     } else {
@@ -95,4 +96,3 @@ fn exec<const IML: usize, ERRTYPE: Debug>(
         Err(e) => println!("Error: {} for line '{}'", e, input),
     }
 }
-

@@ -5,10 +5,10 @@ edition = "2024"
 publish = false
 
 [dependencies]
-shell_input   = { path = "../../shell_input", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
-shell_dispatcher = { path = "../../shell_dispatcher" }
-shell = { path = "../../shell" }
-shell_config = { path = "../shell_config" }
+ushell_input   = { path = "../../ushell_input", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+ushell_dispatcher = { path = "../../ushell_dispatcher" }
+ushell = { path = "../../ushell" }
+ushell_config = { path = "../ushell_config" }
 usercode     = { path = "../usercode"     }
 defmt        = { version = "0.3", optional = true }
 heapless     = "0.9.1"

@@ -61,11 +61,11 @@ version = "0.1.0"
 dependencies = [
  "defmt 0.3.100",
  "heapless",
- "shell",
- "shell_config",
- "shell_dispatcher",
- "shell_input",
  "usercode",
+ "ushell",
+ "ushell_config",
+ "ushell_dispatcher",
+ "ushell_input",
 ]
 
 [[package]]
@@ -134,39 +134,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shell"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "shell_input",
- "winapi",
-]
-
-[[package]]
-name = "shell_config"
-version = "0.1.0"
-
-[[package]]
-name = "shell_dispatcher"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "proc-macro2",
- "quote",
- "syn",
- "winapi",
-]
-
-[[package]]
-name = "shell_input"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "termios",
- "winapi",
-]
-
-[[package]]
 name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -221,6 +188,39 @@ checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 [[package]]
 name = "usercode"
 version = "0.1.0"
+
+[[package]]
+name = "ushell"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "ushell_input",
+ "winapi",
+]
+
+[[package]]
+name = "ushell_config"
+version = "0.1.0"
+
+[[package]]
+name = "ushell_dispatcher"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "winapi",
+]
+
+[[package]]
+name = "ushell_input"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "termios",
+ "winapi",
+]
 
 [[package]]
 name = "winapi"

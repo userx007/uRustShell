@@ -1,11 +1,11 @@
 [workspace]
 resolver = "3"
 members = [
-    "shell_input",
-    "shell_dispatcher",
-    "shell",
+    "ushell_input",
+    "ushell_dispatcher",
+    "ushell",
     "examples/demo_app",
-    "examples/shell_config",
+    "examples/ushell_config",
     "examples/usercode",
 ]
 

@@ -1,8 +1,8 @@
-use shell_config::{
+use ushell::uShell;
+use ushell_config::{
     HISTORY_MAX_ENTRIES, HISTORY_TOTAL_CAPACITY, INPUT_MAX_LEN, MAX_HEXSTR_LEN, PROMPT,
 };
-use shell_dispatcher::{generate_commands_dispatcher, generate_shortcuts_dispatcher};
-use shell::Shell;
+use ushell_dispatcher::{generate_commands_dispatcher, generate_shortcuts_dispatcher};
 
 use usercode::commands as uc;
 use usercode::shortcuts as us;
@@ -20,7 +20,7 @@ generate_shortcuts_dispatcher! {
 }
 
 fn main() {
-    Shell::<
+    uShell::<
         { commands::NUM_COMMANDS },
         { commands::MAX_FUNCTION_NAME_LEN },
         { INPUT_MAX_LEN },

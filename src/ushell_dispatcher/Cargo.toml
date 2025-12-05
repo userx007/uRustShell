@@ -1,5 +1,5 @@
 [package]
-name = "shell_dispatcher"
+name = "ushell_dispatcher"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,7 +7,7 @@ description = "Procedural macros for generating command and shortcut dispatchers
 license = "MIT"
 repository = "https://github.com/userx007/uRustShell"
 homepage = "https://github.com/userx007/uRustShell"
-documentation = "https://docs.rs/shell_input"
+documentation = "https://docs.rs/ushell_input"
 keywords = ["shell", "macro", "command-line", "dispatcher", "repl"]
 categories = ["development-tools", "command-line-utilities"]
 authors = ["userx007 <vmpxxl@gmail.com>"]
