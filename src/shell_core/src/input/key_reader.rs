@@ -124,33 +124,32 @@ pub mod platform {
             match b {
                 b'\x1B' => {
                     // Escape sequence
-                    if let Some(Ok(b2)) = bytes.next() {
-                        if b2 == b'[' {
-                            if let Some(Ok(b3)) = bytes.next() {
-                                return Ok(match b3 {
-                                    b'A' => Key::ArrowUp,
-                                    b'B' => Key::ArrowDown,
-                                    b'C' => Key::ArrowRight,
-                                    b'D' => Key::ArrowLeft,
-                                    b'H' => Key::Home,
-                                    b'F' => Key::End,
-                                    b'Z' => Key::ShiftTab,
-                                    b'1' | b'2' | b'3' | b'5' | b'6' => {
-                                        // Read next '~' to confirm
-                                        let _ = bytes.next();
-                                        match b3 {
-                                            b'1' => Key::Home,
-                                            b'2' => Key::Insert,
-                                            b'3' => Key::Delete,
-                                            b'5' => Key::PageUp,
-                                            b'6' => Key::PageDown,
-                                            _ => Key::Char('~'),
-                                        }
-                                    }
-                                    _ => Key::Char(b3 as char),
-                                });
+                    if let Some(Ok(b2)) = bytes.next()
+                        && b2 == b'['
+                        && let Some(Ok(b3)) = bytes.next()
+                    {
+                        return Ok(match b3 {
+                            b'A' => Key::ArrowUp,
+                            b'B' => Key::ArrowDown,
+                            b'C' => Key::ArrowRight,
+                            b'D' => Key::ArrowLeft,
+                            b'H' => Key::Home,
+                            b'F' => Key::End,
+                            b'Z' => Key::ShiftTab,
+                            b'1' | b'2' | b'3' | b'5' | b'6' => {
+                                // Read next '~' to confirm
+                                let _ = bytes.next();
+                                match b3 {
+                                    b'1' => Key::Home,
+                                    b'2' => Key::Insert,
+                                    b'3' => Key::Delete,
+                                    b'5' => Key::PageUp,
+                                    b'6' => Key::PageDown,
+                                    _ => Key::Char('~'),
+                                }
                             }
-                        }
+                            _ => Key::Char(b3 as char),
+                        });
                     }
                 }
 
