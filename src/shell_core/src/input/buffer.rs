@@ -269,3 +269,568 @@ impl<const IML: usize> Default for InputBuffer<IML> {
         Self::new()
     }
 }
+
+// ==================== TEST =======================
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================================
+    // Basic Creation and Initialization
+    // ============================================================================
+
+    #[test]
+    fn test_new_creates_empty_buffer() {
+        let buf: InputBuffer<8> = InputBuffer::new();
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.cursor(), 0);
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn test_default_trait() {
+        let buf: InputBuffer<16> = InputBuffer::default();
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    // ============================================================================
+    // Insert Operations
+    // ============================================================================
+
+    #[test]
+    fn test_insert_single_char() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        assert!(buf.insert('a'));
+        assert_eq!(buf.len(), 1);
+        assert_eq!(buf.cursor(), 1);
+        assert_eq!(buf.to_string().as_str(), "a");
+    }
+
+    #[test]
+    fn test_insert_multiple_chars() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        assert!(buf.insert('h'));
+        assert!(buf.insert('e'));
+        assert!(buf.insert('l'));
+        assert!(buf.insert('l'));
+        assert!(buf.insert('o'));
+        assert_eq!(buf.to_string().as_str(), "hello");
+        assert_eq!(buf.len(), 5);
+        assert_eq!(buf.cursor(), 5);
+    }
+
+    #[test]
+    fn test_insert_at_buffer_capacity() {
+        let mut buf: InputBuffer<4> = InputBuffer::new();
+        assert!(buf.insert('a'));
+        assert!(buf.insert('b'));
+        assert!(buf.insert('c'));
+        assert!(buf.insert('d'));
+        assert_eq!(buf.len(), 4);
+    }
+
+    #[test]
+    fn test_insert_beyond_capacity_fails() {
+        let mut buf: InputBuffer<3> = InputBuffer::new();
+        assert!(buf.insert('a'));
+        assert!(buf.insert('b'));
+        assert!(buf.insert('c'));
+        assert!(!buf.insert('d')); // Should fail
+        assert_eq!(buf.len(), 3);
+        assert_eq!(buf.to_string().as_str(), "abc");
+    }
+
+    #[test]
+    fn test_insert_unicode_chars() {
+        let mut buf: InputBuffer<10> = InputBuffer::new();
+        assert!(buf.insert('α'));
+        assert!(buf.insert('β'));
+        assert!(buf.insert('γ'));
+        assert!(buf.insert('🦀'));
+        assert_eq!(buf.len(), 4);
+    }
+
+    #[test]
+    fn test_insert_in_middle() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('c');
+        buf.move_left();
+        assert!(buf.insert('b'));
+        assert_eq!(buf.to_string().as_str(), "abc");
+        assert_eq!(buf.cursor(), 2);
+    }
+
+    #[test]
+    fn test_insert_at_start() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        buf.move_home();
+        assert!(buf.insert('x'));
+        assert_eq!(buf.to_string().as_str(), "xab");
+        assert_eq!(buf.cursor(), 1);
+    }
+
+    // ============================================================================
+    // Backspace Operations
+    // ============================================================================
+
+    #[test]
+    fn test_backspace_removes_char() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        assert!(buf.backspace());
+        assert_eq!(buf.to_string().as_str(), "a");
+        assert_eq!(buf.len(), 1);
+        assert_eq!(buf.cursor(), 1);
+    }
+
+    #[test]
+    fn test_backspace_at_start_fails() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.move_home();
+        assert!(!buf.backspace());
+        assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn test_backspace_empty_buffer_fails() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        assert!(!buf.backspace());
+    }
+
+    #[test]
+    fn test_backspace_in_middle() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        assert!(buf.backspace());
+        assert_eq!(buf.to_string().as_str(), "hllo");
+        assert_eq!(buf.cursor(), 1);
+    }
+
+    #[test]
+    fn test_multiple_backspaces() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("test");
+        assert!(buf.backspace());
+        assert!(buf.backspace());
+        assert_eq!(buf.to_string().as_str(), "te");
+        assert_eq!(buf.len(), 2);
+    }
+
+    // ============================================================================
+    // Cursor Movement
+    // ============================================================================
+
+    #[test]
+    fn test_move_left() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        buf.move_left();
+        assert_eq!(buf.cursor(), 1);
+    }
+
+    #[test]
+    fn test_move_left_at_start() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.move_home();
+        buf.move_left();
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    #[test]
+    fn test_move_right() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        buf.move_left();
+        buf.move_right();
+        assert_eq!(buf.cursor(), 2);
+    }
+
+    #[test]
+    fn test_move_right_at_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.move_right();
+        assert_eq!(buf.cursor(), 1);
+    }
+
+    #[test]
+    fn test_move_home() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    #[test]
+    fn test_move_home_on_empty() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.move_home();
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    #[test]
+    fn test_move_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_end();
+        assert_eq!(buf.cursor(), 5);
+    }
+
+    #[test]
+    fn test_move_end_on_empty() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.move_end();
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    // ============================================================================
+    // Delete at Cursor
+    // ============================================================================
+
+    #[test]
+    fn test_delete_at_cursor() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.delete_at_cursor();
+        assert_eq!(buf.to_string().as_str(), "ello");
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    #[test]
+    fn test_delete_at_cursor_middle() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        buf.delete_at_cursor();
+        assert_eq!(buf.to_string().as_str(), "helo");
+        assert_eq!(buf.cursor(), 2);
+    }
+
+    #[test]
+    fn test_delete_at_cursor_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.delete_at_cursor();
+        assert_eq!(buf.to_string().as_str(), "hello");
+    }
+
+    #[test]
+    fn test_delete_at_cursor_empty() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.delete_at_cursor();
+        assert_eq!(buf.len(), 0);
+    }
+
+    // ============================================================================
+    // Clear Operation
+    // ============================================================================
+
+    #[test]
+    fn test_clear() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.clear();
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.cursor(), 0);
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn test_clear_empty_buffer() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.clear();
+        assert_eq!(buf.len(), 0);
+    }
+
+    // ============================================================================
+    // Overwrite Operation
+    // ============================================================================
+
+    #[test]
+    fn test_overwrite() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        assert_eq!(buf.to_string().as_str(), "hello");
+        assert_eq!(buf.len(), 5);
+        assert_eq!(buf.cursor(), 5);
+    }
+
+    #[test]
+    fn test_overwrite_replaces_content() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.overwrite("hi");
+        assert_eq!(buf.to_string().as_str(), "hi");
+        assert_eq!(buf.len(), 2);
+    }
+
+    #[test]
+    fn test_overwrite_truncates() {
+        let mut buf: InputBuffer<4> = InputBuffer::new();
+        buf.overwrite("hello");
+        assert_eq!(buf.to_string().as_str(), "hell");
+        assert_eq!(buf.len(), 4);
+    }
+
+    #[test]
+    fn test_overwrite_empty_string() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.overwrite("");
+        assert_eq!(buf.len(), 0);
+        assert!(buf.is_empty());
+    }
+
+
+    // ============================================================================
+    // Delete to Start
+    // ============================================================================
+
+    #[test]
+    fn test_delete_to_start() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        buf.delete_to_start();
+        assert_eq!(buf.to_string().as_str(), "llo");
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    #[test]
+    fn test_delete_to_start_at_start() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.delete_to_start();
+        assert_eq!(buf.to_string().as_str(), "hello");
+    }
+
+    #[test]
+    fn test_delete_to_start_at_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.delete_to_start();
+        assert_eq!(buf.to_string().as_str(), "");
+        assert_eq!(buf.len(), 0);
+    }
+
+    #[test]
+    fn test_delete_to_start_empty() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.delete_to_start();
+        assert_eq!(buf.len(), 0);
+    }
+
+    // ============================================================================
+    // Delete to End
+    // ============================================================================
+
+    #[test]
+    fn test_delete_to_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        buf.delete_to_end();
+        assert_eq!(buf.to_string().as_str(), "he");
+        assert_eq!(buf.len(), 2);
+    }
+
+    #[test]
+    fn test_delete_to_end_at_end() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.delete_to_end();
+        assert_eq!(buf.to_string().as_str(), "hello");
+    }
+
+    #[test]
+    fn test_delete_to_end_at_start() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.delete_to_end();
+        assert_eq!(buf.to_string().as_str(), "");
+        assert_eq!(buf.len(), 0);
+    }
+
+    #[test]
+    fn test_delete_to_end_empty() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.delete_to_end();
+        assert_eq!(buf.len(), 0);
+    }
+
+    // ============================================================================
+    // Complex Scenarios
+    // ============================================================================
+
+    #[test]
+    fn test_complex_editing_scenario() {
+        let mut buf: InputBuffer<16> = InputBuffer::new();
+        buf.overwrite("hello world");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        buf.move_right();
+        buf.move_right();
+        buf.move_right();
+        buf.insert('_');
+        buf.move_end();
+        buf.backspace();
+        buf.backspace();
+        buf.backspace();
+        buf.backspace();
+        buf.backspace();
+        buf.backspace();
+        assert_eq!(buf.to_string().as_str(), "hello_");
+    }
+
+    #[test]
+    fn test_insert_after_backspace() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        buf.insert('c');
+        buf.backspace();
+        buf.insert('x');
+        assert_eq!(buf.to_string().as_str(), "abx");
+    }
+
+    #[test]
+    fn test_cursor_navigation_and_edit() {
+        let mut buf: InputBuffer<10> = InputBuffer::new();
+        buf.overwrite("test");
+        buf.move_home();
+        buf.move_right();
+        buf.move_right();
+        buf.delete_at_cursor();
+        buf.insert('x');
+        assert_eq!(buf.to_string().as_str(), "text");
+    }
+
+    #[test]
+    fn test_full_buffer_operations() {
+        let mut buf: InputBuffer<4> = InputBuffer::new();
+        assert!(buf.insert('a'));
+        assert!(buf.insert('b'));
+        assert!(buf.insert('c'));
+        assert!(buf.insert('d'));
+        assert!(!buf.insert('e'));
+        buf.backspace();
+        assert!(buf.insert('x'));
+        assert_eq!(buf.to_string().as_str(), "abcx");
+    }
+
+    #[test]
+    fn test_alternating_insert_and_delete() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.delete_at_cursor();
+        buf.insert('b');
+        buf.move_left();
+        buf.delete_at_cursor();
+        buf.insert('c');
+        assert_eq!(buf.to_string().as_str(), "ac");
+    }
+
+    // ============================================================================
+    // Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_zero_capacity_buffer() {
+        let mut buf: InputBuffer<0> = InputBuffer::new();
+        assert!(!buf.insert('a'));
+        assert_eq!(buf.len(), 0);
+    }
+
+    #[test]
+    fn test_single_capacity_buffer() {
+        let mut buf: InputBuffer<1> = InputBuffer::new();
+        assert!(buf.insert('a'));
+        assert!(!buf.insert('b'));
+        assert_eq!(buf.to_string().as_str(), "a");
+    }
+
+    #[test]
+    fn test_whitespace_characters() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert(' ');
+        buf.insert('\t');
+        buf.insert('\n');
+        assert_eq!(buf.len(), 3);
+    }
+
+    #[test]
+    fn test_null_character() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('\0');
+        assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn test_repeated_operations() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        for _ in 0..100 {
+            buf.move_home();
+            buf.move_end();
+        }
+        assert_eq!(buf.cursor(), 0);
+    }
+
+    // ============================================================================
+    // State Consistency Tests
+    // ============================================================================
+
+    #[test]
+    fn test_cursor_never_exceeds_length() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("test");
+        buf.move_end();
+        buf.move_right();
+        buf.move_right();
+        assert!(buf.cursor() <= buf.len());
+    }
+
+    #[test]
+    fn test_length_consistency_after_operations() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.insert('a');
+        buf.insert('b');
+        buf.insert('c');
+        let len = buf.len();
+        assert_eq!(buf.to_string().len(), len);
+    }
+
+    #[test]
+    fn test_buffer_state_after_clear() {
+        let mut buf: InputBuffer<8> = InputBuffer::new();
+        buf.overwrite("hello");
+        buf.move_home();
+        buf.move_right();
+        buf.clear();
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.cursor(), 0);
+        assert_eq!(buf.to_string().as_str(), "");
+    }
+}
