@@ -1,9 +1,8 @@
-
 #[cfg(feature = "history-persistence")]
 extern crate std;
 
 #[cfg(feature = "history-persistence")]
-const HISTORY_FILENAME: &str  = ".hist";
+const HISTORY_FILENAME: &str = ".hist";
 
 #[cfg(feature = "history-persistence")]
 use std::fmt::Write;
@@ -114,7 +113,10 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
             self.data[(offset + i) % HTC] = b;
         }
         self.data_head = (self.data_head + len) % HTC;
-        self.entries[self.entry_head] = Some(EntryMeta { offset, length: len });
+        self.entries[self.entry_head] = Some(EntryMeta {
+            offset,
+            length: len,
+        });
         self.entry_head = (self.entry_head + 1) % HME;
         if self.entry_size < HME {
             self.entry_size += 1;
@@ -146,7 +148,6 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
         self.current_index = (self.current_index + 1) % self.entry_size;
         self.get::<IML>(self.current_index)
     }
-
 
     /// Returns the **first (oldest)** entry in history, if any.
     pub fn get_first_entry<const IML: usize>(&self) -> Option<String<IML>> {
@@ -279,10 +280,10 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
     /// Loads history entries from a file (if `history-persistence` feature is enabled).
     #[cfg(feature = "history-persistence")]
     pub fn load_from_file(&mut self, path: &str) {
-        use std::fs::File;
-        use std::io::{BufReader, BufRead};
-        use heapless::Vec;
         use heapless::String as HString;
+        use heapless::Vec;
+        use std::fs::File;
+        use std::io::{BufRead, BufReader};
         if let Ok(file) = File::open(path) {
             let reader = BufReader::new(file);
             let mut lines: Vec<HString<256>, HME> = Vec::new();
@@ -314,13 +315,15 @@ impl<const HTC: usize, const HME: usize> History<HTC, HME> {
 }
 
 /// Implements the `Iterator` trait for `HistoryIter`.
-/// 
+///
 /// # Type Parameters
 /// - `'a`: Lifetime of the iterator.
 /// - `HTC`: History table capacity.
 /// - `HME`: History max entries.
 /// - `IML`: Item max length.
-impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator for HistoryIter<'a, HTC, HME, IML> {
+impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
+    for HistoryIter<'a, HTC, HME, IML>
+{
     /// The type of item returned by the iterator.
     type Item = String<IML>;
 
@@ -344,13 +347,15 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator for Hist
 /// Implements the `Iterator` trait for `HistoryWithIndexesIter`.
 ///
 /// This iterator yields both the index and the entry value.
-/// 
+///
 /// # Type Parameters
 /// - `'a`: Lifetime of the iterator.
 /// - `HTC`: History table capacity.
 /// - `HME`: History max entries.
 /// - `IML`: Item max length.
-impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator for HistoryWithIndexesIter<'a, HTC, HME, IML> {
+impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator
+    for HistoryWithIndexesIter<'a, HTC, HME, IML>
+{
     /// The type of item returned by the iterator: a tuple of index and entry.
     type Item = (usize, String<IML>);
 
@@ -376,7 +381,7 @@ impl<'a, const HTC: usize, const HME: usize, const IML: usize> Iterator for Hist
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     // Helper function to create a clean history for testing
     fn new_test_history<const HTC: usize, const HME: usize>() -> History<HTC, HME> {
         let mut history = History::new();
@@ -423,7 +428,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         assert_eq!(history.entry_size, 3);
         assert_eq!(history.get::<1024>(0).as_deref(), Some("first"));
         assert_eq!(history.get::<1024>(1).as_deref(), Some("second"));
@@ -491,7 +496,7 @@ mod tests {
         history.push("second");
         history.push("third");
         history.push("fourth"); // Should evict "first"
-        
+
         assert_eq!(history.entry_size, 3);
         assert_eq!(history.get::<1024>(0).as_deref(), Some("second"));
         assert_eq!(history.get::<1024>(1).as_deref(), Some("third"));
@@ -507,7 +512,7 @@ mod tests {
         history.push("ddd");
         history.push("eee");
         history.push("fff"); // Should evict "aaa"
-        
+
         assert_eq!(history.entry_size, 5);
         assert_eq!(history.get::<20>(0).as_deref(), Some("bbb"));
     }
@@ -520,7 +525,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("second"));
         assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("first"));
     }
@@ -531,7 +536,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         history.get_prev_entry::<1024>(); // second
         history.get_prev_entry::<1024>(); // first
         assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("third"));
@@ -543,7 +548,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         history.current_index = 0;
         assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("second"));
         assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("third"));
@@ -555,7 +560,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         history.current_index = 2;
         assert_eq!(history.get_next_entry::<1024>().as_deref(), Some("first"));
     }
@@ -580,7 +585,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("first"));
     }
 
@@ -590,7 +595,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("third"));
     }
 
@@ -610,7 +615,7 @@ mod tests {
     fn test_first_last_single_entry() {
         let mut history = new_test_history::<1024, 10>();
         history.push("only");
-        
+
         assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("only"));
         assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("only"));
     }
@@ -622,7 +627,7 @@ mod tests {
         history.push("second");
         history.push("third");
         history.push("fourth"); // Evicts "first"
-        
+
         assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("second"));
         assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("fourth"));
     }
@@ -635,7 +640,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         history.set_index(1);
         assert_eq!(history.current_index, 1);
     }
@@ -644,7 +649,7 @@ mod tests {
     fn test_set_index_out_of_bounds() {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
-        
+
         let old_index = history.current_index;
         history.set_index(10);
         assert_eq!(history.current_index, old_index);
@@ -654,7 +659,7 @@ mod tests {
     fn test_get_invalid_index() {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
-        
+
         assert_eq!(history.get::<1024>(5), None);
     }
 
@@ -663,16 +668,19 @@ mod tests {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
         history.push("second");
-        
+
         let result = history.get_at_index::<1024>(1);
-        assert_eq!(result, Some((1, String::<1024>::try_from("second").unwrap())));
+        assert_eq!(
+            result,
+            Some((1, String::<1024>::try_from("second").unwrap()))
+        );
     }
 
     #[test]
     fn test_get_at_index_invalid() {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
-        
+
         assert_eq!(history.get_at_index::<1024>(5), None);
     }
 
@@ -684,7 +692,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         let entries: Vec<String<1024>> = history.iter::<1024>().collect();
         assert_eq!(entries.len(), 3);
         assert_eq!(entries[0].as_str(), "first");
@@ -705,7 +713,7 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         let entries: Vec<(usize, String<1024>)> = history.iter_with_indexes::<1024>().collect();
         assert_eq!(entries.len(), 3);
         assert_eq!(entries[0].0, 0);
@@ -728,9 +736,9 @@ mod tests {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
         history.push("second");
-        
+
         history.clear();
-        
+
         assert!(history.is_empty());
         assert_eq!(history.entry_size, 0);
         assert_eq!(history.data_head, 0);
@@ -743,7 +751,7 @@ mod tests {
         history.push("first");
         history.clear();
         history.push("new");
-        
+
         assert_eq!(history.entry_size, 1);
         assert_eq!(history.get::<1024>(0).as_deref(), Some("new"));
     }
@@ -762,7 +770,7 @@ mod tests {
     fn test_get_free_space_with_entries() {
         let mut history = new_test_history::<100, 5>();
         history.push("test"); // 4 bytes
-        
+
         let (free_bytes, free_entries) = history.get_free_space();
         assert_eq!(free_bytes, 96);
         assert_eq!(free_entries, 4);
@@ -774,7 +782,7 @@ mod tests {
         history.push("a");
         history.push("b");
         history.push("c");
-        
+
         let (_, free_entries) = history.get_free_space();
         assert_eq!(free_entries, 0);
     }
@@ -786,7 +794,7 @@ mod tests {
         let mut history = new_test_history::<1024, 10>();
         history.push("!@#$%^&*()");
         history.push("tab\there");
-        
+
         assert_eq!(history.get::<1024>(0).as_deref(), Some("!@#$%^&*()"));
         assert_eq!(history.get::<1024>(1).as_deref(), Some("tab\there"));
     }
@@ -795,7 +803,7 @@ mod tests {
     fn test_truncation_with_small_iml() {
         let mut history = new_test_history::<1024, 10>();
         history.push("this is a long string");
-        
+
         let short: Option<String<5>> = history.get(0);
         assert_eq!(short.as_deref(), Some("this "));
     }
@@ -808,7 +816,7 @@ mod tests {
         for i in 0..15 {
             history.push(&format!("{}", i));
         }
-        
+
         assert!(history.entry_size <= 20);
         let last: Option<String<50>> = history.get_last_entry();
         assert_eq!(last.as_deref(), Some("14"));
@@ -821,7 +829,7 @@ mod tests {
         history.push("longer string here");
         history.push("b");
         history.push("another long one");
-        
+
         assert_eq!(history.entry_size, 4);
     }
 
@@ -833,7 +841,7 @@ mod tests {
         history.push("56"); // 2 bytes
         history.push("78"); // 2 bytes
         history.push("90"); // 2 bytes - total 10 bytes
-        
+
         assert_eq!(history.entry_size, 5);
     }
 
@@ -844,10 +852,13 @@ mod tests {
         history.push("bb"); // 2 bytes
         history.push("cc"); // 2 bytes
         history.push("very long string"); // 16 bytes - should evict multiple
-        
+
         // Should have evicted enough entries to fit the new one
         assert!(history.entry_size >= 1);
-        assert_eq!(history.get_last_entry::<20>().as_deref(), Some("very long string"));
+        assert_eq!(
+            history.get_last_entry::<20>().as_deref(),
+            Some("very long string")
+        );
     }
 
     // ==================== CURRENT INDEX BEHAVIOR TESTS ====================
@@ -857,7 +868,7 @@ mod tests {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
         assert_eq!(history.current_index, 0);
-        
+
         history.push("second");
         assert_eq!(history.current_index, 1);
     }
@@ -868,10 +879,10 @@ mod tests {
         history.push("first");
         history.push("second");
         history.push("third");
-        
+
         history.get_prev_entry::<1024>();
         let idx = history.current_index;
-        
+
         history.get_prev_entry::<1024>();
         assert_ne!(history.current_index, idx);
     }
@@ -881,18 +892,18 @@ mod tests {
     #[test]
     fn test_complex_workflow() {
         let mut history = new_test_history::<100, 5>();
-        
+
         history.push("command1");
         history.push("command2");
         history.push("command3");
-        
+
         assert_eq!(history.get_prev_entry::<100>().as_deref(), Some("command2"));
         assert_eq!(history.get_prev_entry::<100>().as_deref(), Some("command1"));
         assert_eq!(history.get_next_entry::<100>().as_deref(), Some("command2"));
-        
+
         history.push("command4");
         assert_eq!(history.get_last_entry::<100>().as_deref(), Some("command4"));
-        
+
         let all: Vec<String<100>> = history.iter().collect();
         assert_eq!(all.len(), 4);
     }
@@ -900,7 +911,7 @@ mod tests {
     #[test]
     fn test_realistic_shell_history() {
         let mut history = new_test_history::<1024, 100>();
-        
+
         let commands = vec![
             "ls -la",
             "cd /home/user",
@@ -910,15 +921,18 @@ mod tests {
             "git commit -m 'fix bug'",
             "git push origin main",
         ];
-        
+
         for cmd in commands.iter() {
             history.push(cmd);
         }
-        
+
         assert_eq!(history.entry_size, 7);
         assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("ls -la"));
-        assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("git push origin main"));
-        
+        assert_eq!(
+            history.get_last_entry::<1024>().as_deref(),
+            Some("git push origin main")
+        );
+
         // Duplicate command rejected
         assert!(!history.push("git status"));
         assert_eq!(history.entry_size, 7);
@@ -944,10 +958,10 @@ mod tests {
         history.push("third");
         history.push("fourth");
         history.push("fifth");
-        
+
         // Add one more to evict the oldest
         history.push("sixth");
-        
+
         // "first" should be evicted
         assert_eq!(history.get_first_entry::<1024>().as_deref(), Some("second"));
         assert_eq!(history.get_last_entry::<1024>().as_deref(), Some("sixth"));
@@ -960,7 +974,7 @@ mod tests {
         history.push("b");
         history.push("c");
         history.push("d"); // Evicts "a"
-        
+
         // Navigate should work correctly
         assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("c"));
         assert_eq!(history.get_prev_entry::<1024>().as_deref(), Some("b"));
@@ -974,7 +988,7 @@ mod tests {
         history.push("other1");
         history.push("other2");
         history.push("other3"); // Evicts "test"
-        
+
         // Now "test" should be accepted again since it was evicted
         assert!(history.push("test"));
     }
@@ -992,11 +1006,11 @@ mod tests {
         let mut history = new_test_history::<1024, 10>();
         history.push("first");
         history.push("second");
-        
+
         let e1 = history.get::<1024>(0);
         let e2 = history.get::<1024>(0);
         let e3 = history.get::<1024>(1);
-        
+
         assert_eq!(e1, e2);
         assert_ne!(e1, e3);
         assert_eq!(history.entry_size, 2);

@@ -1,5 +1,6 @@
 #![allow(clippy::unbuffered_bytes)]
 
+use heapless::{String, Vec};
 /// InputParser is a generic, configurable command-line input handler designed for embedded or constrained environments. It supports:
 /// - Autocompletion
 /// - Input history
@@ -12,17 +13,14 @@
 /// - History
 /// - InputBuffer
 /// - DisplayRenderer
-
 use std::io::{self, Write};
-use heapless::{Vec, String};
 
 use crate::autocomplete::Autocomplete;
 use crate::history::History;
 use crate::input::buffer::InputBuffer;
-use crate::input::renderer::DisplayRenderer;
-use crate::input::key_reader::platform::read_key;
 use crate::input::key_reader::Key;
-
+use crate::input::key_reader::platform::read_key;
+use crate::input::renderer::DisplayRenderer;
 
 /// # Type Parameters
 /// - `NC`: Maximum number of autocomplete candidates.
@@ -40,8 +38,15 @@ use crate::input::key_reader::Key;
 /// - `buffer`: Input buffer for editing and cursor movement (heap-allocated or stack-based depending on feature flags).
 /// - `prompt`: Static prompt string displayed to the user.
 
-pub struct InputParser<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, const HME: usize> {
-    shell_commands : &'static [(&'static str, &'static str)],
+pub struct InputParser<
+    'a,
+    const NC: usize,
+    const FNL: usize,
+    const IML: usize,
+    const HTC: usize,
+    const HME: usize,
+> {
+    shell_commands: &'static [(&'static str, &'static str)],
     shell_datatypes: &'static str,
     shell_shortcuts: &'static str,
     autocomplete: Autocomplete<'a, NC, FNL>,
@@ -62,7 +67,6 @@ pub struct InputParser<'a, const NC: usize, const FNL: usize, const IML: usize, 
 impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, const HME: usize>
     InputParser<'a, NC, FNL, IML, HTC, HME>
 {
-
     /// Creates a new instance of `InputParser` with the provided shell configuration and prompt.
     ///
     /// # Parameters
@@ -95,7 +99,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         let buffer = Box::new(InputBuffer::<IML>::new());
         #[cfg(not(feature = "heap-input-buffer"))]
         let buffer = InputBuffer::<IML>::new();
-
 
         Self {
             shell_commands,
@@ -143,7 +146,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         DisplayRenderer::render(self.prompt, &self.buffer.to_string(), cursor_pos);
     }
 
-
     /// Handles the backspace key event within the input buffer.
     ///
     /// If a character is successfully removed from the buffer:
@@ -168,7 +170,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         }
         DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
     }
-
 
     /// Handles the tab key event to cycle through autocomplete suggestions.
     ///
@@ -199,7 +200,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
     }
 
-
     /// Finalizes the input process by returning the current buffer content as a string.
     ///
     /// Converts the internal buffer to a `String<IML>` and returns it without modification.
@@ -208,20 +208,23 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
         self.buffer.to_string()
     }
 
-
     /// Displays a formatted list of available shell commands.
     ///
     /// Prints each command name and its specification, aligned for readability.
     /// Calculates the maximum command name length to ensure consistent formatting.
 
-    pub fn list_commands(&self)  {
+    pub fn list_commands(&self) {
         println!("\r\n⚡ Commands:");
-        let max_name_len = self.shell_commands.iter().map(|(name, _)| name.len()).max().unwrap_or(0);
+        let max_name_len = self
+            .shell_commands
+            .iter()
+            .map(|(name, _)| name.len())
+            .max()
+            .unwrap_or(0);
         for (name, spec) in self.shell_commands {
             println!("{:>width$} : {}", name, spec, width = max_name_len);
         }
     }
-
 
     /// Displays all available shell commands, shortcuts, and argument types.
     ///
@@ -230,11 +233,12 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
 
     fn list_all(&self) {
         self.list_commands();
-        print!("\n⚡ Shortcuts:\n### : list all\n##  : list cmds\n#q  : exit\n#h  : list history\n#c  : clear history\n#N  : exec from history at index N\n");
+        print!(
+            "\n⚡ Shortcuts:\n### : list all\n##  : list cmds\n#q  : exit\n#h  : list history\n#c  : clear history\n#N  : exec from history at index N\n"
+        );
         print!("\n⚡ User shortcuts:\n{}\n", self.shell_shortcuts);
         print!("\n📝 Arg types:\n{}\n", self.shell_datatypes);
     }
-
 
     /// Handles special hashtag-prefixed input commands.
     ///
@@ -282,7 +286,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
             }
         }
     }
-
 
     /// Parses user input from `stdin` and handles interactive editing and command execution.
     ///
@@ -335,12 +338,20 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
 
                 Key::CtrlU => {
                     self.buffer.delete_to_start();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::CtrlK => {
                     self.buffer.delete_to_end();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::CtrlD => {
@@ -350,54 +361,90 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
 
                 Key::ArrowLeft => {
                     self.buffer.move_left();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::ArrowRight => {
                     self.buffer.move_right();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::ArrowUp => {
                     if let Some(cmd) = self.history.get_next_entry::<IML>() {
                         self.buffer.overwrite(&cmd);
-                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                        DisplayRenderer::render(
+                            self.prompt,
+                            &self.buffer.to_string(),
+                            self.buffer.cursor(),
+                        );
                     }
                 }
 
                 Key::ArrowDown => {
                     if let Some(cmd) = self.history.get_prev_entry::<IML>() {
                         self.buffer.overwrite(&cmd);
-                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                        DisplayRenderer::render(
+                            self.prompt,
+                            &self.buffer.to_string(),
+                            self.buffer.cursor(),
+                        );
                     }
                 }
 
                 Key::Home => {
                     self.buffer.move_home();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::End => {
                     self.buffer.move_end();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::Delete => {
                     self.buffer.delete_at_cursor();
-                    DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                    DisplayRenderer::render(
+                        self.prompt,
+                        &self.buffer.to_string(),
+                        self.buffer.cursor(),
+                    );
                 }
 
                 Key::PageUp => {
                     if let Some(cmd) = self.history.get_first_entry::<IML>() {
                         self.buffer.overwrite(&cmd);
-                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                        DisplayRenderer::render(
+                            self.prompt,
+                            &self.buffer.to_string(),
+                            self.buffer.cursor(),
+                        );
                     }
                 }
 
                 Key::PageDown => {
                     if let Some(cmd) = self.history.get_last_entry::<IML>() {
                         self.buffer.overwrite(&cmd);
-                        DisplayRenderer::render(self.prompt, &self.buffer.to_string(), self.buffer.cursor());
+                        DisplayRenderer::render(
+                            self.prompt,
+                            &self.buffer.to_string(),
+                            self.buffer.cursor(),
+                        );
                     }
                 }
 
@@ -447,7 +494,6 @@ impl<'a, const NC: usize, const FNL: usize, const IML: usize, const HTC: usize, 
     }
 }
 
-
 // ==================== TESTS =======================
 
 #[cfg(test)]
@@ -463,7 +509,7 @@ mod input_parser_tests {
         ("test", "Run tests"),
         ("hello", "Say hello"),
     ];
-    
+
     const TEST_DATATYPES: &str = "string, int, bool";
     const TEST_SHORTCUTS: &str = "Ctrl+C: Cancel\nCtrl+Z: Undo";
     const TEST_PROMPT: &str = "> ";
@@ -476,13 +522,8 @@ mod input_parser_tests {
 
     #[test]
     fn test_new_creates_valid_parser() {
-        let parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let parser = TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Parser should be created successfully
         assert_eq!(parser.prompt, TEST_PROMPT);
     }
@@ -496,7 +537,7 @@ mod input_parser_tests {
             TEST_SHORTCUTS,
             TEST_PROMPT,
         );
-        
+
         assert_eq!(parser.prompt, TEST_PROMPT);
     }
 
@@ -509,14 +550,14 @@ mod input_parser_tests {
             ("cmd4", "desc4"),
             ("cmd5", "desc5"),
         ];
-        
+
         let parser = InputParser::<5, 16, 32, 5, 32>::new(
             max_commands,
             TEST_DATATYPES,
             TEST_SHORTCUTS,
             TEST_PROMPT,
         );
-        
+
         assert_eq!(parser.prompt, TEST_PROMPT);
     }
 
@@ -524,32 +565,24 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_char_single_character() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('h');
         let result = parser.finalize();
-        
+
         assert!(result.starts_with('h'));
     }
 
     #[test]
     fn test_handle_char_multiple_characters() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "hello".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         // Autocomplete may modify input, so check it contains key characters
         assert!(result.contains("hel"));
@@ -558,87 +591,67 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_char_with_autocomplete() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type 'h' which should autocomplete to 'help' or 'hello'
         parser.handle_char('h');
         let result = parser.finalize();
-        
+
         assert!(result.starts_with('h'));
         assert!(result.len() > 0);
     }
 
     #[test]
     fn test_handle_char_special_characters() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let special_chars = "!@#$%^&*()";
         for c in special_chars.chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         assert!(result.len() > 0);
     }
 
     #[test]
     fn test_handle_char_numbers() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "1234567890".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         assert!(result.contains("1234567890"));
     }
 
     #[test]
     fn test_handle_char_spaces() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "hello world".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         assert!(result.contains(' '));
     }
 
     #[test]
     fn test_handle_char_buffer_overflow() {
-        let mut parser = SmallParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            SmallParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Try to fill buffer beyond capacity
         for _ in 0..50 {
             parser.handle_char('a');
         }
-        
+
         let result = parser.finalize();
         // Buffer should be limited to its capacity
         assert!(result.len() <= 32);
@@ -648,55 +661,43 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_backspace_removes_character() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('a');
         parser.handle_char('b');
         parser.handle_backspace();
-        
+
         let result = parser.finalize();
         assert_eq!(result.as_str(), "a");
     }
 
     #[test]
     fn test_handle_backspace_on_empty_buffer() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Backspace on empty buffer should not crash
         parser.handle_backspace();
-        
+
         let result = parser.finalize();
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_handle_backspace_multiple_times() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "hello".chars() {
             parser.handle_char(c);
         }
-        
+
         // Remove 3 characters
         parser.handle_backspace();
         parser.handle_backspace();
         parser.handle_backspace();
-        
+
         let result = parser.finalize();
         // Due to autocomplete, result may differ, but should be shorter
         assert!(result.len() <= 5);
@@ -705,24 +706,20 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_backspace_clears_entire_input() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "test".chars() {
             parser.handle_char(c);
         }
-        
+
         let current_len = parser.buffer.len();
-        
+
         // Remove all characters - may need extra backspaces due to autocomplete
         for _ in 0..(current_len + 5) {
             parser.handle_backspace();
         }
-        
+
         let result = parser.finalize();
         assert!(result.is_empty());
     }
@@ -731,19 +728,15 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_tab_forward_cycling() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('h');
         let first = parser.buffer.to_string();
-        
+
         parser.handle_tab(false);
         let second = parser.buffer.to_string();
-        
+
         // Tab should change the suggestion
         // May be same if only one match
         assert!(first.len() > 0 && second.len() > 0);
@@ -751,53 +744,41 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_tab_reverse_cycling() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('h');
         parser.handle_tab(true); // Shift+Tab
-        
+
         let result = parser.finalize();
         assert!(result.starts_with('h'));
     }
 
     #[test]
     fn test_handle_tab_with_no_matches() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('z'); // No commands start with 'z'
         parser.handle_tab(false);
-        
+
         let result = parser.finalize();
         assert!(result.len() > 0);
     }
 
     #[test]
     fn test_handle_tab_preserves_suffix() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type command and arguments
         for c in "h arg1 arg2".chars() {
             parser.handle_char(c);
         }
-        
+
         parser.handle_tab(false);
         let result = parser.finalize();
-        
+
         // Arguments should be preserved
         assert!(result.contains("arg"));
     }
@@ -806,50 +787,38 @@ mod input_parser_tests {
 
     #[test]
     fn test_finalize_returns_buffer_content() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "test command".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         assert!(result.contains("test"));
     }
 
     #[test]
     fn test_finalize_empty_buffer() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let result = parser.finalize();
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_finalize_multiple_calls() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "test".chars() {
             parser.handle_char(c);
         }
-        
+
         let result1 = parser.finalize();
         let result2 = parser.finalize();
-        
+
         // Multiple calls should return same content
         assert_eq!(result1, result2);
     }
@@ -858,128 +827,100 @@ mod input_parser_tests {
 
     #[test]
     fn test_handle_hashtag_quit_command() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("q");
-        
+
         assert!(!retval); // Should return false for quit
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_help_command() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("#");
-        
+
         assert!(retval); // Should return true
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_full_help_command() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("##");
-        
+
         assert!(retval);
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_history_command() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("h");
-        
+
         assert!(retval);
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_clear_history() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Add some history
-        parser.history.push(&String::<64>::try_from("test1").unwrap());
-        parser.history.push(&String::<64>::try_from("test2").unwrap());
-        
+        parser
+            .history
+            .push(&String::<64>::try_from("test1").unwrap());
+        parser
+            .history
+            .push(&String::<64>::try_from("test2").unwrap());
+
         let (retval, cmd) = parser.handle_hashtag("c");
-        
+
         assert!(retval);
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_numeric_index() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Add history entry
         let test_cmd = String::<64>::try_from("test command").unwrap();
         parser.history.push(&test_cmd);
-        
+
         let (retval, _cmd) = parser.handle_hashtag("0");
-        
+
         assert!(retval);
         // Should return the history command if it exists
     }
 
     #[test]
     fn test_handle_hashtag_invalid_index() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("999");
-        
+
         assert!(retval);
         assert!(cmd.is_none());
     }
 
     #[test]
     fn test_handle_hashtag_invalid_command() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let (retval, cmd) = parser.handle_hashtag("invalid");
-        
+
         assert!(retval);
         assert!(cmd.is_none());
     }
@@ -1016,9 +957,9 @@ mod input_parser_tests {
 
     #[test]
     fn test_valid_byte_control_characters() {
-        assert!(!TestParser::valid_byte(0));   // NULL
-        assert!(!TestParser::valid_byte(1));   // SOH
-        assert!(!TestParser::valid_byte(27));  // ESC
+        assert!(!TestParser::valid_byte(0)); // NULL
+        assert!(!TestParser::valid_byte(1)); // SOH
+        assert!(!TestParser::valid_byte(27)); // ESC
         assert!(!TestParser::valid_byte(127)); // DEL
     }
 
@@ -1034,13 +975,8 @@ mod input_parser_tests {
 
     #[test]
     fn test_list_commands_does_not_panic() {
-        let parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let parser = TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Should not panic
         parser.list_commands();
     }
@@ -1054,7 +990,7 @@ mod input_parser_tests {
             TEST_SHORTCUTS,
             TEST_PROMPT,
         );
-        
+
         // Should not panic with empty commands
         parser.list_commands();
     }
@@ -1063,17 +999,13 @@ mod input_parser_tests {
 
     #[test]
     fn test_autocomplete_behavior_with_matching_prefix() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type 'h' which should autocomplete to 'help' or 'hello'
         parser.handle_char('h');
         let result = parser.finalize();
-        
+
         // Autocomplete should expand the input
         assert!(result.len() >= 1);
         assert!(result.starts_with('h'));
@@ -1081,23 +1013,19 @@ mod input_parser_tests {
 
     #[test]
     fn test_autocomplete_preserves_suffix_after_fnl() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type a full command that matches
         for c in "help".chars() {
             parser.handle_char(c);
         }
-        
+
         // Add content beyond FNL characters
         for c in " these are arguments that should be preserved".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         // Arguments after FNL should be preserved
         assert!(result.contains("preserved"));
@@ -1105,18 +1033,14 @@ mod input_parser_tests {
 
     #[test]
     fn test_no_autocomplete_for_non_matching_input() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type characters that don't match any command
         for c in "xyz123".chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         // Should preserve original input when no match
         assert!(result.contains("xyz"));
@@ -1124,30 +1048,26 @@ mod input_parser_tests {
 
     #[test]
     fn test_full_input_cycle() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type a command - use one that doesn't trigger autocomplete changes
         for c in "xyz".chars() {
             parser.handle_char(c);
         }
-        
+
         // Add some arguments
         parser.handle_char(' ');
         for c in "arg".chars() {
             parser.handle_char(c);
         }
-        
+
         // Remove last character
         parser.handle_backspace();
-        
+
         // Add it back
         parser.handle_char('g');
-        
+
         let result = parser.finalize();
         // Check that we have a reasonable result with our input
         assert!(result.contains("xyz"));
@@ -1156,18 +1076,14 @@ mod input_parser_tests {
 
     #[test]
     fn test_autocomplete_and_backspace() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('h');
         parser.handle_tab(false);
         parser.handle_backspace();
         parser.handle_backspace();
-        
+
         let result = parser.finalize();
         // Should still have some content or be shorter
         assert!(result.len() < 10);
@@ -1175,33 +1091,25 @@ mod input_parser_tests {
 
     #[test]
     fn test_multiple_tab_cycles() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('h');
-        
+
         // Cycle through multiple suggestions
         for _ in 0..3 {
             parser.handle_tab(false);
         }
-        
+
         let result = parser.finalize();
         assert!(result.starts_with('h'));
     }
 
     #[test]
     fn test_mixed_operations() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         parser.handle_char('t');
         parser.handle_char('e');
         parser.handle_backspace();
@@ -1210,7 +1118,7 @@ mod input_parser_tests {
         parser.handle_char('t');
         parser.handle_char(' ');
         parser.handle_tab(false);
-        
+
         let result = parser.finalize();
         assert!(result.len() > 0);
     }
@@ -1219,40 +1127,32 @@ mod input_parser_tests {
 
     #[test]
     fn test_very_long_input() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Try to add more characters than buffer can hold
         for i in 0..150 {
             parser.handle_char(((i % 26) as u8 + b'a') as char);
         }
-        
+
         let result = parser.finalize();
         assert!(result.len() <= 128); // Should be limited by IML
     }
 
     #[test]
     fn test_rapid_backspace_sequence() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         for c in "test".chars() {
             parser.handle_char(c);
         }
-        
+
         // Rapid backspaces including past buffer start
         for _ in 0..10 {
             parser.handle_backspace();
         }
-        
+
         let result = parser.finalize();
         assert!(result.is_empty());
     }
@@ -1260,16 +1160,12 @@ mod input_parser_tests {
     #[test]
     #[allow(unused_comparisons)]
     fn test_tab_with_empty_input() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Tab on empty input
         parser.handle_tab(false);
-        
+
         let result = parser.finalize();
         // Should handle gracefully
         assert!(result.len() >= 0);
@@ -1277,18 +1173,14 @@ mod input_parser_tests {
 
     #[test]
     fn test_special_characters_sequence() {
-        let mut parser = TestParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            TestParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         let special_seq = "!@#$%^&*()_+-={}[]|:;<>?,./";
         for c in special_seq.chars() {
             parser.handle_char(c);
         }
-        
+
         let result = parser.finalize();
         assert!(result.len() > 0);
     }
@@ -1297,38 +1189,30 @@ mod input_parser_tests {
 
     #[test]
     fn test_exact_buffer_capacity() {
-        let mut parser = SmallParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            SmallParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Fill exactly to capacity
         for _ in 0..32 {
             parser.handle_char('a');
         }
-        
+
         let result = parser.finalize();
         assert!(result.len() <= 32);
     }
 
     #[test]
     fn test_autocomplete_at_fnl_boundary() {
-        let mut parser = SmallParser::new(
-            TEST_COMMANDS,
-            TEST_DATATYPES,
-            TEST_SHORTCUTS,
-            TEST_PROMPT,
-        );
-        
+        let mut parser =
+            SmallParser::new(TEST_COMMANDS, TEST_DATATYPES, TEST_SHORTCUTS, TEST_PROMPT);
+
         // Type exactly FNL characters
         for _ in 0..16 {
             parser.handle_char('h');
         }
-        
+
         parser.handle_tab(false);
-        
+
         let result = parser.finalize();
         assert!(result.len() > 0);
     }
@@ -1341,16 +1225,15 @@ mod input_parser_tests {
             TEST_SHORTCUTS,
             TEST_PROMPT,
         );
-        
+
         // Fill history to capacity
         for i in 0..5 {
             let cmd = String::<32>::try_from(format!("cmd{}", i).as_str()).unwrap();
             parser.history.push(&cmd);
         }
-        
+
         // Should handle gracefully when at capacity
         let (retval, _) = parser.handle_hashtag("h");
         assert!(retval);
     }
 }
-

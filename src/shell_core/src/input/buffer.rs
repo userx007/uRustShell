@@ -51,7 +51,6 @@ impl<const IML: usize> InputBuffer<IML> {
         true
     }
 
-
     /// Deletes the character before the cursor (backspace).
     ///
     /// Returns `true` if a character was deleted, or `false` if at the start of the buffer.
@@ -238,7 +237,6 @@ impl<const IML: usize> InputBuffer<IML> {
         self.length = self.cursor_pos;
     }
 
-
     /// Returns the current length of the buffer.
     ///
     /// # Example
@@ -260,7 +258,6 @@ impl<const IML: usize> InputBuffer<IML> {
     pub fn is_empty(&self) -> bool {
         self.length == 0
     }
-
 }
 
 impl<const IML: usize> Default for InputBuffer<IML> {
@@ -597,7 +594,6 @@ mod tests {
         assert_eq!(buf.len(), 0);
         assert!(buf.is_empty());
     }
-
 
     // ============================================================================
     // Delete to Start

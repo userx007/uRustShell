@@ -31,26 +31,25 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
+    Expr, Ident, LitStr, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input, Expr, Ident, LitStr, Token,
+    parse_macro_input,
 };
-
 
 /// Struct to parse macro input in the format:
 /// `mod <name>; shortcut_size = <expr>; path = "<file_path>"`
 struct ShortcutMacroInput {
-    _mod_token: Token![mod],        // Token for the `mod` keyword
-    mod_name: Ident,                // Identifier for the module name
-    _semi1: Token![;],              // Semicolon after module declaration
-    _shortcut_size_token: Ident,    // Identifier for `shortcut_size` keyword
-    _eq_token: Token![=],           // Equals sign for shortcut_size assignment
-    shortcut_size: Expr,            // Expression representing the shortcut size
-    _semi2: Token![;],              // Semicolon after shortcut_size declaration
-    _path_token: Ident,             // Identifier for `path` keyword
-    _eq_token2: Token![=],          // Equals sign for path assignment
-    path: LitStr,                   // Literal string representing the file path
+    _mod_token: Token![mod],     // Token for the `mod` keyword
+    mod_name: Ident,             // Identifier for the module name
+    _semi1: Token![;],           // Semicolon after module declaration
+    _shortcut_size_token: Ident, // Identifier for `shortcut_size` keyword
+    _eq_token: Token![=],        // Equals sign for shortcut_size assignment
+    shortcut_size: Expr,         // Expression representing the shortcut size
+    _semi2: Token![;],           // Semicolon after shortcut_size declaration
+    _path_token: Ident,          // Identifier for `path` keyword
+    _eq_token2: Token![=],       // Equals sign for path assignment
+    path: LitStr,                // Literal string representing the file path
 }
-
 
 impl Parse for ShortcutMacroInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -68,7 +67,6 @@ impl Parse for ShortcutMacroInput {
         })
     }
 }
-
 
 pub fn generate_shortcuts_dispatcher_from_file(input: TokenStream) -> TokenStream {
     let ShortcutMacroInput {
@@ -189,8 +187,8 @@ pub fn generate_shortcuts_dispatcher_from_file(input: TokenStream) -> TokenStrea
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
     use std::collections::HashMap;
+    use std::sync::Mutex;
 
     // Global state to track function calls in tests
     static CALL_LOG: Mutex<Option<HashMap<String, Vec<String>>>> = Mutex::new(None);
@@ -499,7 +497,7 @@ mod tests {
     #[test]
     fn test_get_shortcuts() {
         let shortcuts_list = shortcuts::get_shortcuts();
-        
+
         assert!(shortcuts_list.contains("!+"));
         assert!(shortcuts_list.contains("!-"));
         assert!(shortcuts_list.contains("!#"));
@@ -615,19 +613,28 @@ mod tests {
     #[test]
     fn test_hash_question_debug() {
         clear_log();
-        
+
         // Test the exact failing case
         let input = "#? /path/to/file";
         let result = shortcuts::dispatch(input);
-        
+
         // Check if dispatch succeeded
         assert!(result.is_ok(), "Dispatch failed with: {:?}", result);
-        
+
         // Check if function was called
         let calls = get_calls("hash_question");
         assert!(!calls.is_empty(), "hash_question was not called at all");
-        assert_eq!(calls.len(), 1, "hash_question called {} times instead of 1", calls.len());
-        assert_eq!(calls[0], "/path/to/file", "Wrong parameter: got '{}' expected '/path/to/file'", calls[0]);
+        assert_eq!(
+            calls.len(),
+            1,
+            "hash_question called {} times instead of 1",
+            calls.len()
+        );
+        assert_eq!(
+            calls[0], "/path/to/file",
+            "Wrong parameter: got '{}' expected '/path/to/file'",
+            calls[0]
+        );
     }
 
     #[test]
@@ -718,10 +725,10 @@ mod tests {
     fn test_shortcut_boundary_cases() {
         // Test exactly 2 characters
         assert!(shortcuts::dispatch("!+").is_ok());
-        
+
         // Test more than 2 characters (valid with param)
         assert!(shortcuts::dispatch("!+x").is_ok());
-        
+
         // Test 1 character (invalid)
         assert!(shortcuts::dispatch("!").is_err());
     }

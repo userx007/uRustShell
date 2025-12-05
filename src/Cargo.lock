@@ -60,8 +60,12 @@ name = "demo_app"
 version = "0.1.0"
 dependencies = [
  "defmt 0.3.100",
+ "heapless",
+ "shell_client",
+ "shell_config",
  "shell_core",
- "shell_runner",
+ "shell_macros",
+ "usercode",
 ]
 
 [[package]]
@@ -130,6 +134,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell_client"
+version = "0.1.0"
+dependencies = [
+ "heapless",
+ "shell_core",
+ "winapi",
+]
+
+[[package]]
 name = "shell_config"
 version = "0.1.0"
 
@@ -150,18 +163,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "winapi",
-]
-
-[[package]]
-name = "shell_runner"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "shell_config",
- "shell_core",
- "shell_macros",
- "usercode",
  "winapi",
 ]
 

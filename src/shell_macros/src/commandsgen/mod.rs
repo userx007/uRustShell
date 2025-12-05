@@ -26,7 +26,7 @@
 //! | Z    | usize |   | F    | f32  |   | c    | char |   | b    | bool |   | v    | void |
 //! +------+-------+   +------+------+   +------+------+   +------+------+   +------+------+
 //! | z    | isize |   | f    | f64  |   | s    | &str |   | h    | &[u8]|
- //!+------+-------+   +------+------+   +------+------+   +------+------+
+//!+------+-------+   +------+------+   +------+------+   +------+------+
 
 //! Examples:
 //! - "DdFsb" => arguments: u32, i32, f64, &str, bool
@@ -50,7 +50,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
-use syn::{parse::Parse, parse_macro_input, Ident, LitStr, Result, Token};
+use syn::{Ident, LitStr, Result, Token, parse::Parse, parse_macro_input};
 
 /// A std-like alias used locally during macro input parsing.
 type StdResult<T, E> = std::result::Result<T, E>;
@@ -58,21 +58,32 @@ type StdResult<T, E> = std::result::Result<T, E>;
 /// Per-descriptor maximum counts of each primitive (used to size `CallCtx`).
 #[derive(Default, Clone, Copy)]
 struct HostCounts {
-
     // unsigned ints
-    u8_c: usize, u16_c: usize, u32_c: usize, u64_c: usize, u128_c: usize,
+    u8_c: usize,
+    u16_c: usize,
+    u32_c: usize,
+    u64_c: usize,
+    u128_c: usize,
 
     // signed ints
-    i8_c: usize, i16_c: usize, i32_c: usize, i64_c: usize, i128_c: usize,
+    i8_c: usize,
+    i16_c: usize,
+    i32_c: usize,
+    i64_c: usize,
+    i128_c: usize,
 
     // sized ints
-    usize_c: usize, isize_c: usize,
+    usize_c: usize,
+    isize_c: usize,
 
     // floats
-    f32_c: usize, f64_c: usize,
+    f32_c: usize,
+    f64_c: usize,
 
     // others
-    bool_c: usize, char_c: usize, str_c: usize,
+    bool_c: usize,
+    char_c: usize,
+    str_c: usize,
 
     // hexstring AABBF3C6 => [170, 187, 243, 198]
     hexstr_c: usize,
@@ -80,13 +91,30 @@ struct HostCounts {
 
 /// Component-wise maximum between two `HostCounts`.
 fn host_counts_max(a: HostCounts, b: HostCounts) -> HostCounts {
-    macro_rules! m { ($f:ident) => { if a.$f > b.$f { a.$f } else { b.$f } }; }
+    macro_rules! m {
+        ($f:ident) => {
+            if a.$f > b.$f { a.$f } else { b.$f }
+        };
+    }
     HostCounts {
-        u8_c: m!(u8_c),   u16_c: m!(u16_c),   u32_c: m!(u32_c),   u64_c: m!(u64_c),   u128_c: m!(u128_c),
-        i8_c: m!(i8_c),   i16_c: m!(i16_c),   i32_c: m!(i32_c),   i64_c: m!(i64_c),   i128_c: m!(i128_c),
-        usize_c: m!(usize_c), isize_c: m!(isize_c),
-        f32_c: m!(f32_c), f64_c: m!(f64_c),
-        bool_c: m!(bool_c), char_c: m!(char_c), str_c: m!(str_c), hexstr_c: m!(hexstr_c),
+        u8_c: m!(u8_c),
+        u16_c: m!(u16_c),
+        u32_c: m!(u32_c),
+        u64_c: m!(u64_c),
+        u128_c: m!(u128_c),
+        i8_c: m!(i8_c),
+        i16_c: m!(i16_c),
+        i32_c: m!(i32_c),
+        i64_c: m!(i64_c),
+        i128_c: m!(i128_c),
+        usize_c: m!(usize_c),
+        isize_c: m!(isize_c),
+        f32_c: m!(f32_c),
+        f64_c: m!(f64_c),
+        bool_c: m!(bool_c),
+        char_c: m!(char_c),
+        str_c: m!(str_c),
+        hexstr_c: m!(hexstr_c),
     }
 }
 
@@ -96,7 +124,6 @@ struct CommandMacroInput {
     body: LitStr,                   // Macro input body as string
     hexstr_size: Option<syn::Expr>, // Optional size for hexstr buffers
 }
-
 
 /// Implementation for CommandMacroInput structure
 impl Parse for CommandMacroInput {
@@ -115,44 +142,61 @@ impl Parse for CommandMacroInput {
                 input.parse::<Token![;]>()?;
                 Some(expr)
             } else {
-                return Err(syn::Error::new(key.span(), "Unexpected identifier, expected 'hexstr_size'"));
+                return Err(syn::Error::new(
+                    key.span(),
+                    "Unexpected identifier, expected 'hexstr_size'",
+                ));
             }
         } else {
             None
         };
 
         let body: LitStr = input.parse()?;
-        Ok(CommandMacroInput { mod_ident, hexstr_size, body })
+        Ok(CommandMacroInput {
+            mod_ident,
+            hexstr_size,
+            body,
+        })
     }
 }
 
 /// Generate a no-heap dispatcher module from a DSL mapping.
 pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
-    let CommandMacroInput { mod_ident, body, hexstr_size } = parse_macro_input!(input as CommandMacroInput);
+    let CommandMacroInput {
+        mod_ident,
+        body,
+        hexstr_size,
+    } = parse_macro_input!(input as CommandMacroInput);
 
     // Collect (descriptor, [paths]) pairs from either the DSL
 
     let mut pairs: Vec<(String, Vec<syn::Path>)> = {
-            let s = body.value();
-            let mut acc = Vec::new();
-            for group in s.split(',') {
-                let grp = group.trim();
-                if grp.is_empty() { continue; }
-                let (desc, names) = match grp.split_once(':') {
-                    Some((d, r)) => (d.trim(), r.trim()),
-                    None => continue,
-                };
-                if desc.is_empty() || names.is_empty() { continue; }
-                let desc_str = desc.to_string();
-                let funcs: StdResult<Vec<_>, _> = names
-                    .split_whitespace()
-                    .map(syn::parse_str::<syn::Path>)
-                    .collect();
-                let funcs = match funcs { Ok(v) => v, Err(_) => continue };
-                acc.push((desc_str, funcs));
+        let s = body.value();
+        let mut acc = Vec::new();
+        for group in s.split(',') {
+            let grp = group.trim();
+            if grp.is_empty() {
+                continue;
             }
-            acc
-
+            let (desc, names) = match grp.split_once(':') {
+                Some((d, r)) => (d.trim(), r.trim()),
+                None => continue,
+            };
+            if desc.is_empty() || names.is_empty() {
+                continue;
+            }
+            let desc_str = desc.to_string();
+            let funcs: StdResult<Vec<_>, _> = names
+                .split_whitespace()
+                .map(syn::parse_str::<syn::Path>)
+                .collect();
+            let funcs = match funcs {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            acc.push((desc_str, funcs));
+        }
+        acc
     };
 
     // Deduplicate descriptors, assign indices, gather entries; stable sort by function name.
@@ -161,11 +205,19 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
     for (desc, funcs) in pairs.drain(..) {
         let idx = match unique_desc.iter().position(|x| x == &desc) {
             Some(i) => i,
-            None => { unique_desc.push(desc.clone()); unique_desc.len() - 1 }
+            None => {
+                unique_desc.push(desc.clone());
+                unique_desc.len() - 1
+            }
         };
         for p in funcs {
             let name_str = path_last_ident(&p).unwrap_or_else(|| "unknown".into());
-            entries.push(FnEntry { name_str, path: p, spec: desc.clone(), spec_idx: idx });
+            entries.push(FnEntry {
+                name_str,
+                path: p,
+                spec: desc.clone(),
+                spec_idx: idx,
+            });
         }
     }
 
@@ -197,7 +249,6 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
         let mut c = HostCounts::default();
         for ch in desc.chars() {
             match ch {
-
                 // unsigned (lowercase)
                 'B' => c.u8_c += 1,   // u8
                 'W' => c.u16_c += 1,  // u16
@@ -217,17 +268,17 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
                 'z' => c.isize_c += 1, // isize
 
                 // floats
-                'f' => c.f32_c += 1,  // f32
-                'F' => c.f64_c += 1,  // f64
+                'f' => c.f32_c += 1, // f32
+                'F' => c.f64_c += 1, // f64
 
                 // bool, char, string, hexstring
-                't' => c.bool_c += 1, // bool
-                'c' => c.char_c += 1, // char
-                's' => c.str_c  += 1, // &str
+                't' => c.bool_c += 1,   // bool
+                'c' => c.char_c += 1,   // char
+                's' => c.str_c += 1,    // &str
                 'h' => c.hexstr_c += 1, // hex &str
 
                 // void
-                'v' => {},
+                'v' => {}
                 _ => {}
             }
         }
@@ -235,14 +286,29 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
         let arity = if desc == "v" {
             0
         } else {
-            c.u8_c + c.u16_c + c.u32_c + c.u64_c + c.u128_c +
-            c.i8_c + c.i16_c + c.i32_c + c.i64_c + c.i128_c +
-            c.usize_c + c.isize_c +
-            c.f32_c + c.f64_c +
-            c.bool_c + c.char_c + c.str_c + c.hexstr_c
+            c.u8_c
+                + c.u16_c
+                + c.u32_c
+                + c.u64_c
+                + c.u128_c
+                + c.i8_c
+                + c.i16_c
+                + c.i32_c
+                + c.i64_c
+                + c.i128_c
+                + c.usize_c
+                + c.isize_c
+                + c.f32_c
+                + c.f64_c
+                + c.bool_c
+                + c.char_c
+                + c.str_c
+                + c.hexstr_c
         };
 
-        if arity > max_arity { max_arity = arity; }
+        if arity > max_arity {
+            max_arity = arity;
+        }
         max_counts = host_counts_max(max_counts, c);
     }
 
@@ -254,24 +320,24 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
     let param_specs_len = param_specs.len();
 
     // Generate maximals as constants
-    let max_u8      = max_counts.u8_c;
-    let max_u16     = max_counts.u16_c;
-    let max_u32     = max_counts.u32_c;
-    let max_u64     = max_counts.u64_c;
-    let max_u128    = max_counts.u128_c;
-    let max_i8      = max_counts.i8_c;
-    let max_i16     = max_counts.i16_c;
-    let max_i32     = max_counts.i32_c;
-    let max_i64     = max_counts.i64_c;
-    let max_i128    = max_counts.i128_c;
-    let max_usize   = max_counts.usize_c;
-    let max_isize   = max_counts.isize_c;
-    let max_f32     = max_counts.f32_c;
-    let max_f64     = max_counts.f64_c;
-    let max_bool    = max_counts.bool_c;
-    let max_char    = max_counts.char_c;
-    let max_str     = max_counts.str_c;
-    let max_hexstr  = max_counts.hexstr_c;
+    let max_u8 = max_counts.u8_c;
+    let max_u16 = max_counts.u16_c;
+    let max_u32 = max_counts.u32_c;
+    let max_u64 = max_counts.u64_c;
+    let max_u128 = max_counts.u128_c;
+    let max_i8 = max_counts.i8_c;
+    let max_i16 = max_counts.i16_c;
+    let max_i32 = max_counts.i32_c;
+    let max_i64 = max_counts.i64_c;
+    let max_i128 = max_counts.i128_c;
+    let max_usize = max_counts.usize_c;
+    let max_isize = max_counts.isize_c;
+    let max_f32 = max_counts.f32_c;
+    let max_f64 = max_counts.f64_c;
+    let max_bool = max_counts.bool_c;
+    let max_char = max_counts.char_c;
+    let max_str = max_counts.str_c;
+    let max_hexstr = max_counts.hexstr_c;
     let max_arity_num = max_arity;
 
     // Generate per-descriptor parsers that fill `CallCtx` from `&[&str]`.
@@ -293,29 +359,63 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
         for ch in spec.chars() {
             let stmt = match ch {
                 // unsigned
-                'B' => quote! { ctx.u8s   [idx_b] = parse_u8   (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_b+=1; k+=1; },
-                'W' => quote! { ctx.u16s  [idx_w] = parse_u16  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_w+=1; k+=1; },
-                'D' => quote! { ctx.u32s  [idx_d] = parse_u32  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_d+=1; k+=1; },
-                'Q' => quote! { ctx.u64s  [idx_q] = parse_u64  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_q+=1; k+=1; },
-                'X' => quote! { ctx.u128s [idx_x] = parse_u128 (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_x+=1; k+=1; },
+                'B' => {
+                    quote! { ctx.u8s   [idx_b] = parse_u8   (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_b+=1; k+=1; }
+                }
+                'W' => {
+                    quote! { ctx.u16s  [idx_w] = parse_u16  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_w+=1; k+=1; }
+                }
+                'D' => {
+                    quote! { ctx.u32s  [idx_d] = parse_u32  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_d+=1; k+=1; }
+                }
+                'Q' => {
+                    quote! { ctx.u64s  [idx_q] = parse_u64  (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_q+=1; k+=1; }
+                }
+                'X' => {
+                    quote! { ctx.u128s [idx_x] = parse_u128 (args[k]).ok_or(DispatchError::BadUnsigned)?; idx_x+=1; k+=1; }
+                }
                 // signed
-                'b' => quote! { ctx.i8s   [idx_B] = parse_i8   (args[k]).ok_or(DispatchError::BadSigned  )?; idx_B+=1; k+=1; },
-                'w' => quote! { ctx.i16s  [idx_W] = parse_i16  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_W+=1; k+=1; },
-                'd' => quote! { ctx.i32s  [idx_D] = parse_i32  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_D+=1; k+=1; },
-                'q' => quote! { ctx.i64s  [idx_Q] = parse_i64  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_Q+=1; k+=1; },
-                'x' => quote! { ctx.i128s [idx_X] = parse_i128 (args[k]).ok_or(DispatchError::BadSigned  )?; idx_X+=1; k+=1; },
+                'b' => {
+                    quote! { ctx.i8s   [idx_B] = parse_i8   (args[k]).ok_or(DispatchError::BadSigned  )?; idx_B+=1; k+=1; }
+                }
+                'w' => {
+                    quote! { ctx.i16s  [idx_W] = parse_i16  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_W+=1; k+=1; }
+                }
+                'd' => {
+                    quote! { ctx.i32s  [idx_D] = parse_i32  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_D+=1; k+=1; }
+                }
+                'q' => {
+                    quote! { ctx.i64s  [idx_Q] = parse_i64  (args[k]).ok_or(DispatchError::BadSigned  )?; idx_Q+=1; k+=1; }
+                }
+                'x' => {
+                    quote! { ctx.i128s [idx_X] = parse_i128 (args[k]).ok_or(DispatchError::BadSigned  )?; idx_X+=1; k+=1; }
+                }
                 // sized
-                'Z' => quote! { ctx.usizes[idx_z] = parse_usize(args[k]).ok_or(DispatchError::BadUnsigned)?; idx_z+=1; k+=1; },
-                'z' => quote! { ctx.isizes[idx_Z] = parse_isize(args[k]).ok_or(DispatchError::BadSigned  )?; idx_Z+=1; k+=1; },
+                'Z' => {
+                    quote! { ctx.usizes[idx_z] = parse_usize(args[k]).ok_or(DispatchError::BadUnsigned)?; idx_z+=1; k+=1; }
+                }
+                'z' => {
+                    quote! { ctx.isizes[idx_Z] = parse_isize(args[k]).ok_or(DispatchError::BadSigned  )?; idx_Z+=1; k+=1; }
+                }
                 // floats
-                'f' => quote! { ctx.f32s  [idx_f] = parse_f::<f32  >(args[k]).ok_or(DispatchError::BadFloat)?; idx_f+=1; k+=1; },
-                'F' => quote! { ctx.f64s  [idx_F] = parse_f::<f64  >(args[k]).ok_or(DispatchError::BadFloat)?; idx_F+=1; k+=1; },
+                'f' => {
+                    quote! { ctx.f32s  [idx_f] = parse_f::<f32  >(args[k]).ok_or(DispatchError::BadFloat)?; idx_f+=1; k+=1; }
+                }
+                'F' => {
+                    quote! { ctx.f64s  [idx_F] = parse_f::<f64  >(args[k]).ok_or(DispatchError::BadFloat)?; idx_F+=1; k+=1; }
+                }
                 //  bool, char, string, hexstring
-                't' => quote! { ctx.bools [idx_t] = parse_bool(args[k]).ok_or(DispatchError::BadBool)?; idx_t+=1; k+=1; },
-                'c' => quote! { ctx.chars [idx_c] = parse_char(args[k]).ok_or(DispatchError::BadChar)?; idx_c+=1; k+=1; },
+                't' => {
+                    quote! { ctx.bools [idx_t] = parse_bool(args[k]).ok_or(DispatchError::BadBool)?; idx_t+=1; k+=1; }
+                }
+                'c' => {
+                    quote! { ctx.chars [idx_c] = parse_char(args[k]).ok_or(DispatchError::BadChar)?; idx_c+=1; k+=1; }
+                }
                 's' => quote! { ctx.strs  [idx_s] = args[k]; idx_s+=1; k+=1; },
-                'h' => quote! { ctx.hexstrs[idx_h]= parse_hexstr(args[k]).ok_or(DispatchError::BadHexStr)?; idx_h+=1; k+=1; },
-                _   => quote! {},
+                'h' => {
+                    quote! { ctx.hexstrs[idx_h]= parse_hexstr(args[k]).ok_or(DispatchError::BadHexStr)?; idx_h+=1; k+=1; }
+                }
+                _ => quote! {},
             };
             stmts.push(stmt);
         }
@@ -337,17 +437,24 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
     let mut match_arms: Vec<TokenStream2> = Vec::new();
 
     // Pairs of (function name, descriptor) for diagnostics / UI
-    let name_spec_pairs: Vec<TokenStream2> = entries.iter().map(|e| {
-        let name_lit = LitStr::new(&e.name_str, Span::call_site());
-        let spec_lit = LitStr::new(&e.spec,      Span::call_site());
-        quote! { (#name_lit, #spec_lit) }
-    }).collect();
+    let name_spec_pairs: Vec<TokenStream2> = entries
+        .iter()
+        .map(|e| {
+            let name_lit = LitStr::new(&e.name_str, Span::call_site());
+            let spec_lit = LitStr::new(&e.spec, Span::call_site());
+            quote! { (#name_lit, #spec_lit) }
+        })
+        .collect();
 
     for (pos, e) in entries.iter().enumerate() {
         let name_lit = LitStr::new(&e.name_str, Span::call_site());
         let spec_str = &e.spec;
         //let arity_u8 = (spec_str.chars().count()) as u8;
-        let arity_u8 = if spec_str == "v" { 0 } else { spec_str.chars().count() as u8 };
+        let arity_u8 = if spec_str == "v" {
+            0
+        } else {
+            spec_str.chars().count() as u8
+        };
         let wrapper_ident = format_ident!("__call_{}", sanitize_ident(&e.name_str));
         let path = &e.path;
         let spec_idx_u16 = e.spec_idx as u16;
@@ -356,42 +463,126 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
         // Build type list and extraction expressions according to the descriptor order.
         let mut arg_types: Vec<TokenStream2> = Vec::new();
         let mut arg_exprs: Vec<TokenStream2> = Vec::new();
-        let mut idx_b=0usize; let mut idx_w=0usize; let mut idx_d=0usize; let mut idx_q=0usize; let mut idx_x=0usize;
-        let mut idx_B=0usize; let mut idx_W=0usize; let mut idx_D=0usize; let mut idx_Q=0usize; let mut idx_X=0usize;
-        let mut idx_z=0usize; let mut idx_Z=0usize;
-        let mut idx_f=0usize; let mut idx_F=0usize;
-        let mut idx_t=0usize; let mut idx_c=0usize; let mut idx_s=0usize; let mut idx_h=0usize;
+        let mut idx_b = 0usize;
+        let mut idx_w = 0usize;
+        let mut idx_d = 0usize;
+        let mut idx_q = 0usize;
+        let mut idx_x = 0usize;
+        let mut idx_B = 0usize;
+        let mut idx_W = 0usize;
+        let mut idx_D = 0usize;
+        let mut idx_Q = 0usize;
+        let mut idx_X = 0usize;
+        let mut idx_z = 0usize;
+        let mut idx_Z = 0usize;
+        let mut idx_f = 0usize;
+        let mut idx_F = 0usize;
+        let mut idx_t = 0usize;
+        let mut idx_c = 0usize;
+        let mut idx_s = 0usize;
+        let mut idx_h = 0usize;
 
         for ch in spec_str.chars() {
             match ch {
-
                 // unsigned
-                'B' => { arg_types.push(quote!{ u8    }); arg_exprs.push(quote!{ ctx.u8s    [#idx_b] }); idx_b+=1; }
-                'W' => { arg_types.push(quote!{ u16   }); arg_exprs.push(quote!{ ctx.u16s   [#idx_w] }); idx_w+=1; }
-                'D' => { arg_types.push(quote!{ u32   }); arg_exprs.push(quote!{ ctx.u32s   [#idx_d] }); idx_d+=1; }
-                'Q' => { arg_types.push(quote!{ u64   }); arg_exprs.push(quote!{ ctx.u64s   [#idx_q] }); idx_q+=1; }
-                'X' => { arg_types.push(quote!{ u128  }); arg_exprs.push(quote!{ ctx.u128s  [#idx_x] }); idx_x+=1; }
+                'B' => {
+                    arg_types.push(quote! { u8    });
+                    arg_exprs.push(quote! { ctx.u8s    [#idx_b] });
+                    idx_b += 1;
+                }
+                'W' => {
+                    arg_types.push(quote! { u16   });
+                    arg_exprs.push(quote! { ctx.u16s   [#idx_w] });
+                    idx_w += 1;
+                }
+                'D' => {
+                    arg_types.push(quote! { u32   });
+                    arg_exprs.push(quote! { ctx.u32s   [#idx_d] });
+                    idx_d += 1;
+                }
+                'Q' => {
+                    arg_types.push(quote! { u64   });
+                    arg_exprs.push(quote! { ctx.u64s   [#idx_q] });
+                    idx_q += 1;
+                }
+                'X' => {
+                    arg_types.push(quote! { u128  });
+                    arg_exprs.push(quote! { ctx.u128s  [#idx_x] });
+                    idx_x += 1;
+                }
 
                 // signed
-                'b' => { arg_types.push(quote!{ i8    }); arg_exprs.push(quote!{ ctx.i8s    [#idx_B] }); idx_B+=1; }
-                'w' => { arg_types.push(quote!{ i16   }); arg_exprs.push(quote!{ ctx.i16s   [#idx_W] }); idx_W+=1; }
-                'd' => { arg_types.push(quote!{ i32   }); arg_exprs.push(quote!{ ctx.i32s   [#idx_D] }); idx_D+=1; }
-                'q' => { arg_types.push(quote!{ i64   }); arg_exprs.push(quote!{ ctx.i64s   [#idx_Q] }); idx_Q+=1; }
-                'x' => { arg_types.push(quote!{ i128  }); arg_exprs.push(quote!{ ctx.i128s  [#idx_X] }); idx_X+=1; }
+                'b' => {
+                    arg_types.push(quote! { i8    });
+                    arg_exprs.push(quote! { ctx.i8s    [#idx_B] });
+                    idx_B += 1;
+                }
+                'w' => {
+                    arg_types.push(quote! { i16   });
+                    arg_exprs.push(quote! { ctx.i16s   [#idx_W] });
+                    idx_W += 1;
+                }
+                'd' => {
+                    arg_types.push(quote! { i32   });
+                    arg_exprs.push(quote! { ctx.i32s   [#idx_D] });
+                    idx_D += 1;
+                }
+                'q' => {
+                    arg_types.push(quote! { i64   });
+                    arg_exprs.push(quote! { ctx.i64s   [#idx_Q] });
+                    idx_Q += 1;
+                }
+                'x' => {
+                    arg_types.push(quote! { i128  });
+                    arg_exprs.push(quote! { ctx.i128s  [#idx_X] });
+                    idx_X += 1;
+                }
 
                 // sized
-                'Z' => { arg_types.push(quote!{ usize }); arg_exprs.push(quote!{ ctx.usizes [#idx_z] }); idx_z+=1; }
-                'z' => { arg_types.push(quote!{ isize }); arg_exprs.push(quote!{ ctx.isizes [#idx_Z] }); idx_Z+=1; }
+                'Z' => {
+                    arg_types.push(quote! { usize });
+                    arg_exprs.push(quote! { ctx.usizes [#idx_z] });
+                    idx_z += 1;
+                }
+                'z' => {
+                    arg_types.push(quote! { isize });
+                    arg_exprs.push(quote! { ctx.isizes [#idx_Z] });
+                    idx_Z += 1;
+                }
 
                 // floats
-                'f' => { arg_types.push(quote!{ f32   }); arg_exprs.push(quote!{ ctx.f32s   [#idx_f] }); idx_f+=1; }
-                'F' => { arg_types.push(quote!{ f64   }); arg_exprs.push(quote!{ ctx.f64s   [#idx_F] }); idx_F+=1; }
+                'f' => {
+                    arg_types.push(quote! { f32   });
+                    arg_exprs.push(quote! { ctx.f32s   [#idx_f] });
+                    idx_f += 1;
+                }
+                'F' => {
+                    arg_types.push(quote! { f64   });
+                    arg_exprs.push(quote! { ctx.f64s   [#idx_F] });
+                    idx_F += 1;
+                }
 
                 // others
-                't' => { arg_types.push(quote!{ bool  }); arg_exprs.push(quote!{ ctx.bools  [#idx_t] }); idx_t+=1; }
-                'c' => { arg_types.push(quote!{ char  }); arg_exprs.push(quote!{ ctx.chars  [#idx_c] }); idx_c+=1; }
-                's' => { arg_types.push(quote!{ &str  }); arg_exprs.push(quote!{ ctx.strs   [#idx_s] }); idx_s+=1; }
-                'h' => { arg_types.push(quote!{ &[u8] }); arg_exprs.push(quote!{ &ctx.hexstrs[#idx_h] }); idx_h+=1; }
+                't' => {
+                    arg_types.push(quote! { bool  });
+                    arg_exprs.push(quote! { ctx.bools  [#idx_t] });
+                    idx_t += 1;
+                }
+                'c' => {
+                    arg_types.push(quote! { char  });
+                    arg_exprs.push(quote! { ctx.chars  [#idx_c] });
+                    idx_c += 1;
+                }
+                's' => {
+                    arg_types.push(quote! { &str  });
+                    arg_exprs.push(quote! { ctx.strs   [#idx_s] });
+                    idx_s += 1;
+                }
+                'h' => {
+                    arg_types.push(quote! { &[u8] });
+                    arg_exprs.push(quote! { &ctx.hexstrs[#idx_h] });
+                    idx_h += 1;
+                }
                 _ => {}
             }
         }
@@ -437,8 +628,10 @@ pub fn generate_dispatcher_from_dsl(input: TokenStream) -> TokenStream {
         // Emit a compile error at macro expansion time
         return syn::Error::new(
             Span::call_site(),
-            "You must provide `hexstr_size = ...;` in the macro input."
-        ).to_compile_error().into();
+            "You must provide `hexstr_size = ...;` in the macro input.",
+        )
+        .to_compile_error()
+        .into();
     };
 
     let out = quote! {
@@ -795,24 +988,25 @@ fn path_last_ident(p: &syn::Path) -> Option<String> {
 
 /// Make a valid identifier for wrapper functions (replace non-ASCII-alnum with `_`).
 fn sanitize_ident(s: &str) -> String {
-    s.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect()
+    s.chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect()
 }
 
-
 pub fn generate_commands_dispatcher_from_file(input: TokenStream) -> TokenStream {
-    use syn::{parse::ParseStream, Expr};
+    use syn::{Expr, parse::ParseStream};
 
     struct FileMacroInput {
-        _mod_token: Token![mod],      // Token for `mod` keyword
-        mod_name: Ident,              // Name of the module to generate
-        _semi1: Token![;],            // Semicolon after module declaration
-        _hexstr_size_token: Ident,    // Identifier for hexstr_size
-        _eq_token: Token![=],         // Equals token for hexstr_size assignment
-        hexstr_size: Expr,            // Expression for hexstr_size value
-        _semi2: Token![;],            // Semicolon after hexstr_size assignment
-        _path_token: Ident,           // Identifier for path
-        _eq_token2: Token![=],        // Equals token for path assignment
-        path: LitStr,                 // Literal string for file path
+        _mod_token: Token![mod],   // Token for `mod` keyword
+        mod_name: Ident,           // Name of the module to generate
+        _semi1: Token![;],         // Semicolon after module declaration
+        _hexstr_size_token: Ident, // Identifier for hexstr_size
+        _eq_token: Token![=],      // Equals token for hexstr_size assignment
+        hexstr_size: Expr,         // Expression for hexstr_size value
+        _semi2: Token![;],         // Semicolon after hexstr_size assignment
+        _path_token: Ident,        // Identifier for path
+        _eq_token2: Token![=],     // Equals token for path assignment
+        path: LitStr,              // Literal string for file path
     }
 
     impl Parse for FileMacroInput {
@@ -842,9 +1036,10 @@ pub fn generate_commands_dispatcher_from_file(input: TokenStream) -> TokenStream
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let full_path = std::path::Path::new(&manifest_dir).join(path.value());
 
-
-    let raw_dsl = std::fs::read_to_string(&full_path)
-        .expect(&format!("Failed to read command descriptor file: {:?}", full_path));
+    let raw_dsl = std::fs::read_to_string(&full_path).expect(&format!(
+        "Failed to read command descriptor file: {:?}",
+        full_path
+    ));
 
     let macro_input = quote! {
         mod #mod_name;
@@ -861,7 +1056,7 @@ pub fn generate_commands_dispatcher_from_file(input: TokenStream) -> TokenStream
 mod tests {
     use super::*;
     use quote::quote;
-    
+
     // Helper to generate dispatcher code and return it as a string for inspection
     fn generate_dispatcher(descriptor: &str) -> String {
         let input = quote! {
@@ -869,44 +1064,55 @@ mod tests {
             hexstr_size = 64;
             #descriptor
         };
-        
+
         // Call the internal implementation that returns proc_macro2::TokenStream
         let output = {
             let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse input");
-            
+
             // Now manually extract and process just like generate_dispatcher_from_dsl does
-            let CommandMacroInput { mod_ident, body, hexstr_size } = parsed;
-            
+            let CommandMacroInput {
+                mod_ident,
+                body,
+                hexstr_size,
+            } = parsed;
+
             let pairs: Vec<(String, Vec<syn::Path>)> = {
                 let s = body.value();
                 let mut acc = Vec::new();
                 for group in s.split(',') {
                     let grp = group.trim();
-                    if grp.is_empty() { continue; }
+                    if grp.is_empty() {
+                        continue;
+                    }
                     let (desc, names) = match grp.split_once(':') {
                         Some((d, r)) => (d.trim(), r.trim()),
                         None => continue,
                     };
-                    if desc.is_empty() || names.is_empty() { continue; }
+                    if desc.is_empty() || names.is_empty() {
+                        continue;
+                    }
                     let desc_str = desc.to_string();
                     let funcs: StdResult<Vec<_>, _> = names
                         .split_whitespace()
                         .map(syn::parse_str::<syn::Path>)
                         .collect();
-                    let funcs = match funcs { Ok(v) => v, Err(_) => continue };
+                    let funcs = match funcs {
+                        Ok(v) => v,
+                        Err(_) => continue,
+                    };
                     acc.push((desc_str, funcs));
                 }
                 acc
             };
-            
+
             // Check we got at least some entries for non-empty, non-whitespace descriptors
             if !descriptor.trim().is_empty() && pairs.is_empty() {
                 panic!("Failed to parse descriptor: {}", descriptor);
             }
-            
+
             // Verify parsing worked
             assert!(!mod_ident.to_string().is_empty());
-            
+
             quote! {
                 // Simplified version for testing
                 pub mod #mod_ident {
@@ -915,7 +1121,7 @@ mod tests {
                 }
             }
         };
-        
+
         output.to_string()
     }
 
@@ -985,7 +1191,7 @@ mod tests {
             hexstr_size = 64;
             "DD: test::add"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse");
         assert_eq!(parsed.mod_ident.to_string(), "my_custom_name");
     }
@@ -997,7 +1203,7 @@ mod tests {
             hexstr_size = 256;
             "h: test::hexstr"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input).expect("Failed to parse");
         // Verify hexstr_size was captured
         assert!(parsed.hexstr_size.is_some());
@@ -1030,7 +1236,7 @@ mod tests {
             u32_c: 1,
             ..Default::default()
         };
-        
+
         let max = host_counts_max(a, b);
         assert_eq!(max.u8_c, 5);
         assert_eq!(max.u16_c, 7);
@@ -1058,7 +1264,7 @@ mod tests {
         counts.char_c = 1;
         counts.str_c = 1;
         counts.hexstr_c = 1;
-        
+
         // Verify all fields can be set
         assert_eq!(counts.u8_c, 1);
         assert_eq!(counts.hexstr_c, 1);
@@ -1172,7 +1378,7 @@ mod tests {
             spec: "DD".to_string(),
             spec_idx: 0,
         };
-        
+
         assert_eq!(entry.name_str, "add");
         assert_eq!(entry.spec, "DD");
         assert_eq!(entry.spec_idx, 0);
@@ -1200,9 +1406,9 @@ mod tests {
                 spec_idx: 0,
             },
         ];
-        
+
         entries.sort_by(|a, b| a.name_str.cmp(&b.name_str));
-        
+
         assert_eq!(entries[0].name_str, "apple");
         assert_eq!(entries[1].name_str, "middle");
         assert_eq!(entries[2].name_str, "zebra");
@@ -1245,7 +1451,7 @@ mod tests {
         let mut str_count = 0;
         let mut bool_count = 0;
         let mut f32_count = 0;
-        
+
         for ch in desc.chars() {
             match ch {
                 'D' => u32_count += 1,
@@ -1255,7 +1461,7 @@ mod tests {
                 _ => {}
             }
         }
-        
+
         assert_eq!(u32_count, 2);
         assert_eq!(str_count, 1);
         assert_eq!(bool_count, 1);
@@ -1287,10 +1493,10 @@ mod tests {
             hexstr_size = 64;
             "DD: test::add"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input);
         assert!(parsed.is_ok());
-        
+
         let cmd = parsed.unwrap();
         assert_eq!(cmd.mod_ident.to_string(), "test_dispatcher");
         assert_eq!(cmd.body.value(), "DD: test::add");
@@ -1302,7 +1508,7 @@ mod tests {
             mod test_dispatcher;
             "DD: test::add"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input);
         assert!(parsed.is_ok());
         assert!(parsed.unwrap().hexstr_size.is_none());
@@ -1315,7 +1521,7 @@ mod tests {
             hexstr_size = crate::MAX_SIZE;
             "DD: test::add"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input);
         assert!(parsed.is_ok());
         assert!(parsed.unwrap().hexstr_size.is_some());
@@ -1328,7 +1534,7 @@ mod tests {
             hexstr_size = 128;
             "DD: test::add test::sub, dd: test::neg, s: test::greet, v: test::noop"
         };
-        
+
         let parsed = syn::parse2::<CommandMacroInput>(input);
         assert!(parsed.is_ok());
     }
@@ -1363,7 +1569,9 @@ mod tests {
 
     #[test]
     fn test_long_function_name() {
-        let code = generate_dispatcher("DD: test::this_is_a_very_long_function_name_that_should_still_work");
+        let code = generate_dispatcher(
+            "DD: test::this_is_a_very_long_function_name_that_should_still_work",
+        );
         assert!(code.contains("test_dispatcher"));
     }
 
@@ -1379,7 +1587,7 @@ mod tests {
              DD: test::add test::sub test::mul test::div, \
              s: test::echo test::print, \
              t: test::enable test::disable, \
-             Dst: test::set_config"
+             Dst: test::set_config",
         );
         assert!(code.contains("test_dispatcher"));
     }
@@ -1405,7 +1613,7 @@ mod tests {
              c: test::char_func, \
              s: test::str_func, \
              h: test::hex_func, \
-             v: test::void_func"
+             v: test::void_func",
         );
         assert!(code.contains("test_dispatcher"));
     }
@@ -1418,7 +1626,7 @@ mod tests {
     fn test_duplicate_descriptors_dedup() {
         let descriptor = "DD: test::add, DD: test::sub, DD: test::mul";
         let mut unique: Vec<String> = Vec::new();
-        
+
         for group in descriptor.split(',') {
             let grp = group.trim();
             if let Some((desc, _)) = grp.split_once(':') {
@@ -1428,7 +1636,7 @@ mod tests {
                 }
             }
         }
-        
+
         assert_eq!(unique.len(), 1);
         assert_eq!(unique[0], "DD");
     }
@@ -1437,7 +1645,7 @@ mod tests {
     fn test_different_descriptors_no_dedup() {
         let descriptor = "DD: test::add, dd: test::sub, D: test::third";
         let mut unique: Vec<String> = Vec::new();
-        
+
         for group in descriptor.split(',') {
             let grp = group.trim();
             if let Some((desc, _)) = grp.split_once(':') {
@@ -1447,7 +1655,7 @@ mod tests {
                 }
             }
         }
-        
+
         assert_eq!(unique.len(), 3);
     }
 
@@ -1475,7 +1683,7 @@ mod tests {
                 }
             })
             .sum::<usize>();
-        
+
         assert_eq!(count, 3);
     }
 }

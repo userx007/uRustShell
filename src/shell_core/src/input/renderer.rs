@@ -3,9 +3,7 @@ use std::io::{self, Write};
 /// DisplayRenderer: handles terminal output
 pub struct DisplayRenderer;
 
-
 impl DisplayRenderer {
-
     /// Renders the prompt and input content to the terminal.
     ///
     /// - Clears the current line.
@@ -21,7 +19,6 @@ impl DisplayRenderer {
         let _ = io::stdout().flush();
     }
 
-
     /// Emits an audible bell sound in the terminal.
     ///
     /// - Useful for signaling invalid actions (e.g., backspace at start of buffer).
@@ -31,7 +28,6 @@ impl DisplayRenderer {
         print!("\x07");
         let _ = io::stdout().flush();
     }
-
 
     /// Prints a red boundary marker in the terminal.
     ///
@@ -47,7 +43,6 @@ impl DisplayRenderer {
 }
 
 // ==================== TESTS =======================
-
 
 #[cfg(test)]
 mod tests {

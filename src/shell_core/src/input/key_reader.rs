@@ -2,47 +2,45 @@
 
 #[derive(Debug)]
 pub enum Key {
-
     // Arrow keys – navigate through history or move the cursor
-    ArrowUp,      // Move to previous history entry or move cursor up
-    ArrowDown,    // Move to next history entry or move cursor down
-    ArrowLeft,    // Move cursor left
-    ArrowRight,   // Move cursor right
+    ArrowUp,    // Move to previous history entry or move cursor up
+    ArrowDown,  // Move to next history entry or move cursor down
+    ArrowLeft,  // Move cursor left
+    ArrowRight, // Move cursor right
 
     // Navigation keys
-    Home,         // Move cursor to the start of the line
-    End,          // Move cursor to the end of the line
-    Insert,       // Reserved / not currently used
-    Delete,       // Delete character at the cursor position
-    PageUp,       // Move to the oldest history entry
-    PageDown,     // Move to the newest history entry
+    Home,     // Move cursor to the start of the line
+    End,      // Move cursor to the end of the line
+    Insert,   // Reserved / not currently used
+    Delete,   // Delete character at the cursor position
+    PageUp,   // Move to the oldest history entry
+    PageDown, // Move to the newest history entry
 
     // Input / editing keys
-    Enter,        // Submit input or insert newline
-    Backspace,    // Delete character before the cursor
-    Tab,          // Navigate autocomplete forward
-    ShiftTab,     // Navigate autocomplete backward
+    Enter,     // Submit input or insert newline
+    Backspace, // Delete character before the cursor
+    Tab,       // Navigate autocomplete forward
+    ShiftTab,  // Navigate autocomplete backward
 
     // Control sequences for line editing
-    CtrlU,        // Delete from cursor to beginning of line
-    CtrlK,        // Delete from cursor to end of line
-    CtrlD,        // Delete the entire line
+    CtrlU, // Delete from cursor to beginning of line
+    CtrlK, // Delete from cursor to end of line
+    CtrlD, // Delete the entire line
 
     // Printable character
-    Char(char),   // Any regular character input
+    Char(char), // Any regular character input
 }
-
 
 #[cfg(windows)]
 pub mod platform {
     use super::Key;
     use std::io;
+    use winapi::shared::minwindef::DWORD;
     use winapi::um::consoleapi::ReadConsoleInputW;
-    use winapi::um::wincon::{INPUT_RECORD, KEY_EVENT};
-    use winapi::um::wincontypes::KEY_EVENT_RECORD;
     use winapi::um::processenv::GetStdHandle;
     use winapi::um::winbase::STD_INPUT_HANDLE;
-    use winapi::shared::minwindef::DWORD;
+    use winapi::um::wincon::{INPUT_RECORD, KEY_EVENT};
+    use winapi::um::wincontypes::KEY_EVENT_RECORD;
 
     const LEFT_CTRL_PRESSED: u32 = 0x0008;
     const RIGHT_CTRL_PRESSED: u32 = 0x0004;
@@ -71,7 +69,9 @@ pub mod platform {
 
                     let vkey = key_event.wVirtualKeyCode;
                     let c = *key_event.uChar.UnicodeChar() as u32;
-                    let ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+                    let ctrl = (key_event.dwControlKeyState
+                        & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
+                        != 0;
                     let shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
 
                     // Handle Ctrl+ combos explicitly
@@ -111,7 +111,6 @@ pub mod platform {
     }
 }
 
-
 #[cfg(not(windows))]
 pub mod platform {
     use super::Key;
@@ -123,7 +122,8 @@ pub mod platform {
 
         while let Some(Ok(b)) = bytes.next() {
             match b {
-                b'\x1B' => { // Escape sequence
+                b'\x1B' => {
+                    // Escape sequence
                     if let Some(Ok(b2)) = bytes.next() {
                         if b2 == b'[' {
                             if let Some(Ok(b3)) = bytes.next() {
@@ -212,7 +212,7 @@ mod tests {
         // Verify that Key enum implements Debug correctly
         let key = Key::ArrowUp;
         assert_eq!(format!("{:?}", key), "ArrowUp");
-        
+
         let char_key = Key::Char('a');
         assert_eq!(format!("{:?}", char_key), "Char('a')");
     }
@@ -281,7 +281,10 @@ mod tests {
     #[test]
     fn test_key_matching() {
         fn is_arrow_key(key: &Key) -> bool {
-            matches!(key, Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight)
+            matches!(
+                key,
+                Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight
+            )
         }
 
         assert!(is_arrow_key(&Key::ArrowUp));
@@ -295,8 +298,14 @@ mod tests {
         fn is_navigation_key(key: &Key) -> bool {
             matches!(
                 key,
-                Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight
-                    | Key::Home | Key::End | Key::PageUp | Key::PageDown
+                Key::ArrowUp
+                    | Key::ArrowDown
+                    | Key::ArrowLeft
+                    | Key::ArrowRight
+                    | Key::Home
+                    | Key::End
+                    | Key::PageUp
+                    | Key::PageDown
             )
         }
 
@@ -346,5 +355,3 @@ mod tests {
         assert_eq!(key_name(&Key::Char(' ')), "Space");
     }
 }
-
-

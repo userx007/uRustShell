@@ -50,10 +50,10 @@ impl RawMode {
     pub fn new(_: i32) -> Self {
         use winapi::um::{
             consoleapi::{GetConsoleMode, SetConsoleMode},
-            processenv::GetStdHandle,
-            wincon::{ENABLE_LINE_INPUT, ENABLE_ECHO_INPUT},
             handleapi::INVALID_HANDLE_VALUE,
+            processenv::GetStdHandle,
             winbase::STD_INPUT_HANDLE,
+            wincon::{ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT},
         };
         unsafe {
             let handle = GetStdHandle(STD_INPUT_HANDLE);
@@ -86,8 +86,8 @@ impl Drop for RawMode {
     #[cfg(windows)]
     fn drop(&mut self) {
         use winapi::um::consoleapi::*;
-        use winapi::um::processenv::*;
         use winapi::um::handleapi::INVALID_HANDLE_VALUE;
+        use winapi::um::processenv::*;
         use winapi::um::winbase::STD_INPUT_HANDLE;
         unsafe {
             let handle = GetStdHandle(STD_INPUT_HANDLE);

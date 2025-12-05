@@ -1,4 +1,3 @@
-
 // Implement the actual logic for each shortcut
 pub fn shortcut_plus_plus(param: &str) {
     println!("Executing ++ with param: '{}'", param);

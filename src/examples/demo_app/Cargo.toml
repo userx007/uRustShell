@@ -5,10 +5,13 @@ edition = "2024"
 publish = false
 
 [dependencies]
-shell_core = { path = "../../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
-shell_runner = { path = "../shell_runner" }
-defmt = { version = "0.3", optional = true }
-
+shell_core   = { path = "../../shell_core", features = ["history-persistence", "heap-history", "heap-input-buffer"] }
+shell_macros = { path = "../../shell_macros" }
+shell_client = { path = "../../shell_client" }
+shell_config = { path = "../shell_config" }
+usercode     = { path = "../usercode"     }
+defmt        = { version = "0.3", optional = true }
+heapless     = "0.9.1"
 
 [features]
 default = []

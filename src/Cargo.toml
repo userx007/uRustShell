@@ -3,9 +3,9 @@ resolver = "3"
 members = [
     "shell_core",
     "shell_macros",
+    "shell_client",
     "examples/demo_app",
     "examples/shell_config",
-    "examples/shell_runner",
     "examples/usercode",
 ]
 

@@ -1,5 +1,4 @@
-
-use heapless::{Vec, String};
+use heapless::{String, Vec};
 
 /// Autocomplete struct for managing and filtering command candidates.
 /// - `'a`: Lifetime for string slices.
@@ -106,14 +105,13 @@ impl<'a, const NC: usize, const FNL: usize> Autocomplete<'a, NC, FNL> {
     }
 }
 
-
 // ==================== TESTS =======================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use heapless::{Vec, String};
-    
+    use heapless::{String, Vec};
+
     const NC: usize = 8;
     const FNL: usize = 32;
 
@@ -344,9 +342,7 @@ mod tests {
         let mut ac = Autocomplete::<NC, FNL>::new(make_candidates());
 
         let test_inputs = [
-            "a", "al", "alp", "alpi",
-            "g", "ga", "gam", "gamb",
-            "z", "ze", "zet", "zeta",
+            "a", "al", "alp", "alpi", "g", "ga", "gam", "gamb", "z", "ze", "zet", "zeta",
         ];
 
         for inp in test_inputs {
