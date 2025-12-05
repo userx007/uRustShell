@@ -45,3 +45,29 @@ impl DisplayRenderer {
         let _ = io::stdout().flush();
     }
 }
+
+// ==================== TESTS =======================
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Test will just call methods to ensure they do not panic.
+    // Because DisplayRenderer writes directly to stdout,
+    // full capture is tricky without changing library code.
+    #[test]
+    fn test_render_does_not_panic() {
+        DisplayRenderer::render(">", "Hello", 3);
+    }
+
+    #[test]
+    fn test_bell_does_not_panic() {
+        DisplayRenderer::bell();
+    }
+
+    #[test]
+    fn test_boundary_marker_does_not_panic() {
+        DisplayRenderer::boundary_marker();
+    }
+}
