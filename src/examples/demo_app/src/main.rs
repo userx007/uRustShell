@@ -1,6 +1,4 @@
-use ushell_config::{
-    HISTORY_MAX_ENTRIES, HISTORY_TOTAL_CAPACITY, INPUT_MAX_LEN, MAX_HEXSTR_LEN, PROMPT,
-};
+use ushell_config::*;
 use ushell_dispatcher::{generate_commands_dispatcher, generate_shortcuts_dispatcher};
 use ushell2::uShell;
 

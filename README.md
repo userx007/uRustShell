@@ -340,7 +340,7 @@ If you require additional input capacity, you can increase it in the configurati
 ## Building and executing
 
 * Clone the repository locally.
-* Assuming that the Rust build environment is already installed, simply run `cargo run`.
+* Assuming that the Rust build environment is already installed, simply run `cargo run -p demo_app`.
 * This command will build and execute the application using the provided test commands.
 * Replace these test commands with your own to obtain a fully functional, shell-based application tailored to your needs.
 * In principle, you should only need to modify the code in the `usercode` folder.

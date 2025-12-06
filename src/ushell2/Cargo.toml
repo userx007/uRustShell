@@ -16,7 +16,7 @@ authors = ["userx007 <vmpxxl@gmail.com>"]
 
 [dependencies]
 heapless = "0.9.1"
-ushell_input = "0.1.0"
+ushell_input = { version = "0.1.0", path = "../ushell_input" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "handleapi"] }
