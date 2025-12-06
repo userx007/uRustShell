@@ -341,7 +341,10 @@ If you require additional input capacity, you can increase it in the configurati
 
 * Clone the repository locally.
 * Assuming that the Rust build environment is already installed, simply run `cargo run -p demo_app`.
-* This command will build and execute the application using the provided test commands.
+* This command will build and execute the test application using the provided test commands.
 * Replace these test commands with your own to obtain a fully functional, shell-based application tailored to your needs.
 * In principle, you should only need to modify the code in the `usercode` folder.
 
+## Template for Quick Start
+
+An alternative approach is to extract the `urShell.zip` file from the `template` folder in the repository to your local machine and build it using `cargo run`. This template uses pre-published components from `crates.io`, making it the fastest way to integrate the shell into your project.
